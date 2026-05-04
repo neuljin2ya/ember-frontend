@@ -49,6 +49,7 @@ jobs:
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             OPENAI_MODEL=${{ secrets.OPENAI_MODEL }}
             ADMIN_ORIGIN=${{ secrets.ADMIN_ORIGIN }}
+            INTERNAL_API_KEY=${{ secrets.INTERNAL_API_KEY }}
             EOF
             chmod 600 .env
 
