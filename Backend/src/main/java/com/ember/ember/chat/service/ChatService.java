@@ -224,7 +224,7 @@ public class ChatService {
 
         MessageType type;
         try {
-            type = MessageType.valueOf(request.type());
+            type = (request.type() != null) ? MessageType.valueOf(request.type()) : MessageType.TEXT;
         } catch (IllegalArgumentException e) {
             type = MessageType.TEXT;
         }
