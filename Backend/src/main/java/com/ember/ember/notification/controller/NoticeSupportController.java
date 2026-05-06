@@ -32,7 +32,8 @@ public class NoticeSupportController {
         공지사항 목록을 조회합니다.
 
         **정렬:** 고정(isPinned=true) 우선, 그 다음 최신순
-        - Redis 1시간 캐싱 적용""")
+        - Redis 1시간 캐싱 적용""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -46,7 +47,7 @@ public class NoticeSupportController {
 
     /** 15.2 공지사항 상세 조회 */
     @GetMapping("/api/notices/{noticeId}")
-    @Operation(summary = "공지사항 상세 조회")
+    @Operation(summary = "공지사항 상세 조회", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -69,7 +70,8 @@ public class NoticeSupportController {
         현재 활성화된 배너를 조회합니다. 최대 5개.
 
         **응답:** id, title, imageUrl, linkType(NONE/INTERNAL/EXTERNAL), linkUrl
-        - Redis 1시간 캐싱""")
+        - Redis 1시간 캐싱""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -107,7 +109,8 @@ public class NoticeSupportController {
         FAQ 목록을 조회합니다.
 
         **응답:** faqId, question, answer, category
-        - Redis 1시간 캐싱""")
+        - Redis 1시간 캐싱""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
