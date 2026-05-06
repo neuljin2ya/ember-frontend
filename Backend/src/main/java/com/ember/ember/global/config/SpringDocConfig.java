@@ -27,16 +27,27 @@ public class SpringDocConfig {
                 서버: https://ember-app.duckdns.org
                 인증: Bearer 토큰 (`GET /api/dev/token?userId=1` 로 발급)
 
-                # 전체 API 플로우 (실제 사용자)
+                # 전체 API 플로우
 
-                ## 1단계: 카카오 로그인 + 온보딩
+                ## 1단계: 로그인 + 온보딩
+
+                ### 방법 A: Dev 로그인 (카카오 없이 테스트)
+                ```
+                POST /api/dev/register → 테스트 유저 생성 + accessToken 발급 (ROLE_GUEST)
+                  ↓ 이후 온보딩 플로우 동일
+                ```
+
+                ### 방법 B: 카카오 로그인 (실제 사용자)
                 ```
                 [Flutter] 카카오 SDK로 카카오 로그인 → kakaoAccessToken 획득
                   ↓
                 POST /api/auth/social (provider=KAKAO, accessToken=카카오토큰)
                   → 신규: 회원가입 + JWT 발급 (ROLE_GUEST)
                   → 기존: 로그인 + JWT 발급 (ROLE_USER)
-                  ↓
+                ```
+
+                ### 온보딩 (신규 가입 시)
+                ```
                 POST /api/consent (type=USER_TERMS) → 이용약관 동의
                 POST /api/consent (type=AI_TERMS) → AI 분석 동의
                   ↓
