@@ -211,4 +211,5 @@ ai:
 
 springdoc:
   swagger-ui:
-    enabled: false
+    enabled: true
+    urls-primary-name: user-api
