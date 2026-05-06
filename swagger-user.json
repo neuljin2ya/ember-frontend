@@ -79,6 +79,10 @@
     {
       "name": "IdealType",
       "description": "이상형 키워드 API"
+    },
+    {
+      "name": "Dev",
+      "description": "개발/테스트 API"
     }
   ],
   "paths": {
@@ -1118,7 +1122,7 @@
     "/api/dev/register": {
       "post": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "registerTestUser",
         "responses": {
@@ -1139,7 +1143,7 @@
     "/api/dev/exchange-rooms/{roomId}/set-deadline": {
       "post": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "setDeadline",
         "parameters": [
@@ -1181,7 +1185,7 @@
     "/api/dev/exchange-rooms/{roomId}/force-complete": {
       "post": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "forceComplete",
         "parameters": [
@@ -1213,7 +1217,7 @@
     "/api/dev/ai/simulate/{diaryId}": {
       "post": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "simulateAiResult",
         "parameters": [
@@ -3347,7 +3351,7 @@
     "/api/dev/token": {
       "get": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "issueTestToken",
         "parameters": [
@@ -3381,7 +3385,7 @@
     "/api/dev/redis/user/{userId}": {
       "get": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "redisUserKeys",
         "parameters": [
@@ -3413,7 +3417,7 @@
     "/api/dev/redis/summary": {
       "get": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "redisSummary",
         "responses": {
@@ -3434,7 +3438,7 @@
     "/api/dev/redis/keys": {
       "get": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "redisKeys",
         "parameters": [
@@ -3465,7 +3469,7 @@
     "/api/dev/redis/get": {
       "get": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "redisGet",
         "parameters": [
@@ -3623,7 +3627,7 @@
     "/api/dev/redis/delete": {
       "delete": {
         "tags": [
-          "dev-controller"
+          "Dev"
         ],
         "operationId": "redisDelete",
         "parameters": [

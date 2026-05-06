@@ -119,9 +119,7 @@ DB → Supabase Cloud (PostgreSQL)
 - 인증 API 등 핵심 API는 Backend 팀이 구현 중
 - WebSocket 채팅: `wss://ember-app.duckdns.org/ws/chat` (STOMP)
 - Android 에뮬레이터에서 로컬 테스트: `http://10.0.2.2:8080`
-- **HTTPS 적용 완료** — cleartext 설정 불필요
-
----
+- **HTTPS 적용 완료** — cleartext 설정 불필요g
 
 ## 아직 안 된 것
 

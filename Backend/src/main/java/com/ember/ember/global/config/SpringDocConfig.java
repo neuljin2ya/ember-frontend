@@ -40,14 +40,14 @@ import org.springframework.context.annotation.Profile;
                 final client = StompClient(
                   config: StompConfig.sockJS(
                     url: 'https://ember-app.duckdns.org/ws/chat',
-                    stompConnectHeaders: {'Authorization': 'Bearer \$token'},
+                    stompConnectHeaders: {'Authorization': 'Bearer $token'},
                   ),
                 );
                 client.activate();
                 // 구독
-                client.subscribe(destination: '/topic/chat/\$roomId', callback: (frame) { ... });
+                client.subscribe(destination: '/topic/chat/$roomId', callback: (frame) { ... });
                 // 전송
-                client.send(destination: '/app/chat/\$roomId', body: jsonEncode({...}));
+                client.send(destination: '/app/chat/$roomId', body: jsonEncode({...}));
                 ```
 
                 > **참고**: 메시지 전송은 `POST /api/chat-rooms/{roomId}/messages` REST API로도 가능합니다 (테스트용).
