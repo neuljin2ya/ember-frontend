@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -319,8 +318,6 @@ public class SpringDocConfig {
                 .group("user-api")
                 .pathsToMatch("/api/**")
                 .pathsToExclude("/api/admin/**")
-                .addOpenApiCustomizer(openApi ->
-                        openApi.addSecurityItem(new SecurityRequirement().addList("bearerAuth")))
                 .build();
     }
 
@@ -333,8 +330,6 @@ public class SpringDocConfig {
         return GroupedOpenApi.builder()
                 .group("all")
                 .pathsToMatch("/api/**")
-                .addOpenApiCustomizer(openApi ->
-                        openApi.addSecurityItem(new SecurityRequirement().addList("bearerAuth")))
                 .build();
     }
 
