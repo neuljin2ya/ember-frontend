@@ -25,7 +25,9 @@ public class SpringDocConfig {
                 Ember 사용자 + Dev API (총 88개)
 
                 서버: https://ember-app.duckdns.org
-                인증: Bearer 토큰 (`GET /api/dev/token?userId=1` 로 발급)
+                인증: Bearer 토큰
+                - 신규 테스트: `POST /api/dev/register` → 응답의 accessToken 사용
+                - 기존 유저 재로그인: `GET /api/dev/token?userId={id}` → 해당 유저의 토큰 발급
 
                 # 전체 API 플로우
 
