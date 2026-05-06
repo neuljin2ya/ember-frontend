@@ -28,7 +28,11 @@ public class NoticeSupportController {
 
     /** 15.1 공지사항 목록 조회 */
     @GetMapping("/api/notices")
-    @Operation(summary = "공지사항 목록 조회")
+    @Operation(summary = "공지사항 목록 조회", description = """
+        공지사항 목록을 조회합니다.
+
+        **정렬:** 고정(isPinned=true) 우선, 그 다음 최신순
+        - Redis 1시간 캐싱 적용""")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -61,7 +65,11 @@ public class NoticeSupportController {
 
     /** 15.3 활성 배너 조회 */
     @GetMapping("/api/notices/banners")
-    @Operation(summary = "활성 배너 조회 (최대 5개)")
+    @Operation(summary = "활성 배너 조회 (최대 5개)", description = """
+        현재 활성화된 배너를 조회합니다. 최대 5개.
+
+        **응답:** id, title, imageUrl, linkType(NONE/INTERNAL/EXTERNAL), linkUrl
+        - Redis 1시간 캐싱""")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -75,7 +83,11 @@ public class NoticeSupportController {
 
     /** 15.4 미읽음 공지 수 조회 */
     @GetMapping("/api/notices/unread-count")
-    @Operation(summary = "미읽음 공지사항 수 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "미읽음 공지사항 수 조회", description = """
+        미읽음 공지 수를 반환합니다.
+
+        **동작:** lastReadNoticeId 기준으로 그 이후 공지 수 카운트""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -91,7 +103,11 @@ public class NoticeSupportController {
 
     /** 16.1 FAQ 조회 */
     @GetMapping("/api/faq")
-    @Operation(summary = "FAQ 목록 조회")
+    @Operation(summary = "FAQ 목록 조회", description = """
+        FAQ 목록을 조회합니다.
+
+        **응답:** faqId, question, answer, category
+        - Redis 1시간 캐싱""")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -105,7 +121,18 @@ public class NoticeSupportController {
 
     /** 16.2 1:1 문의 접수 */
     @PostMapping("/api/support/inquiry")
-    @Operation(summary = "1:1 문의 접수", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "1:1 문의 접수", description = """
+        1:1 문의를 접수합니다.
+
+        **요청 필드:**
+        - `category` (필수): 문의 카테고리 (예: "기능 문의", "버그 제보")
+        - `title` (필수): 제목
+        - `content` (필수): 문의 내용
+
+        **제한:** 진행 중(PENDING) 문의 5건 초과 시 SP001 에러
+
+        **에러:** SP001(5건 초과)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -126,7 +153,11 @@ public class NoticeSupportController {
 
     /** 16.3 내 문의 목록 조회 */
     @GetMapping("/api/support/inquiries")
-    @Operation(summary = "내 문의 목록 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "내 문의 목록 조회", description = """
+        내 문의 목록을 조회합니다.
+
+        **응답:** inquiryId, category, title, status(PENDING/ANSWERED/CLOSED), createdAt""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

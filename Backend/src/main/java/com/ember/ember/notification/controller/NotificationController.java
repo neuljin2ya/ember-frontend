@@ -25,7 +25,17 @@ public class NotificationController {
 
     /** 9.1 알림 목록 조회 */
     @GetMapping("/api/notifications")
-    @Operation(summary = "알림 목록 조회 (최근 30일)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "알림 목록 조회 (최근 30일)", description = """
+        최근 30일간의 알림 목록을 조회합니다.
+
+        **알림 타입:**
+        - MATCHING_REQUEST: 매칭 신청 알림
+        - MATCHING_MATCHED: 매칭 성사 알림
+        - EXCHANGE_TURN: 교환일기 턴 알림
+        - COUPLE_CONFIRMED: 커플 확정 알림
+        - AI_ANALYSIS_DONE: AI 분석 완료 알림
+        - SYSTEM: 시스템 공지 등""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -62,7 +72,11 @@ public class NotificationController {
 
     /** 9.3 전체 알림 읽음 처리 */
     @PatchMapping("/api/notifications/read-all")
-    @Operation(summary = "전체 알림 읽음 처리", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "전체 알림 읽음 처리", description = """
+        모든 미읽음 알림을 한 번에 읽음 처리합니다.
+
+        **응답:** updatedCount(읽음 처리된 개수), readAt(처리 시간)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -78,7 +92,17 @@ public class NotificationController {
 
     /** 9.4 알림 설정 조회 */
     @GetMapping("/api/users/me/notification-settings")
-    @Operation(summary = "알림 설정 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "알림 설정 조회", description = """
+        알림 설정을 조회합니다.
+
+        **6종 카테고리:**
+        - matching: 매칭 관련 알림
+        - diaryTurn: 교환일기 턴 알림
+        - chat: 채팅 메시지 알림
+        - aiAnalysis: AI 분석 완료 알림
+        - couple: 커플 관련 알림
+        - system: 시스템 알림""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -94,7 +118,11 @@ public class NotificationController {
 
     /** 9.5 알림 설정 수정 */
     @PatchMapping("/api/users/me/notification-settings")
-    @Operation(summary = "알림 설정 수정 (변경할 필드만 전송)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "알림 설정 수정 (변경할 필드만 전송)", description = """
+        알림 설정을 수정합니다. 변경할 항목만 보내면 됩니다 (PATCH).
+
+        **요청 예시:** `{"matching":false}` → matching만 끔, 나머지 유지""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

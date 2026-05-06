@@ -19,7 +19,10 @@ public class HealthController {
     private final Environment environment;
 
     /** Backend 서버 상태 확인 */
-    @Operation(summary = "서버 헬스체크")
+    @Operation(summary = "서버 헬스체크", description = """
+        서버 상태를 확인합니다. 인증 불필요.
+
+        **응답:** status("ok"), profile("local"/"prod"), timestamp(ISO 8601)""")
     @GetMapping("/api/health")
     public ResponseEntity<ApiResponse<HealthResponse>> health() {
         String[] profiles = environment.getActiveProfiles();

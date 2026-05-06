@@ -48,7 +48,13 @@ public class ChatController {
 
     /** 6.2 채팅방 목록 조회 */
     @GetMapping("/api/chat-rooms")
-    @Operation(summary = "채팅방 목록 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "채팅방 목록 조회", description = """
+        채팅방 목록을 조회합니다.
+
+        **응답:** ACTIVE 상태 방 목록
+        - partnerNickname, lastMessage, lastMessageAt, unreadCount 포함
+        - N+1 최적화 적용 (JOIN FETCH + 배치 쿼리)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -63,7 +69,16 @@ public class ChatController {
 
     /** 6.3 메시지 이력 조회 */
     @GetMapping("/api/chat-rooms/{roomId}/messages")
-    @Operation(summary = "메시지 이력 조회 (커서 기반)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "메시지 이력 조회 (커서 기반)", description = """
+        채팅 메시지 이력을 커서 기반으로 조회합니다.
+
+        **쿼리 파라미터:**
+        - `cursor` (선택): 이전 응답의 nextCursor
+        - `size` (기본 20): 한 번에 가져올 개수
+
+        **응답:** 최신순 정렬, sequenceId로 순서 보장
+        - type: TEXT(일반), SYSTEM(시스템 메시지)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -81,7 +96,11 @@ public class ChatController {
 
     /** 6.4 채팅 상대방 프로필 조회 */
     @GetMapping("/api/chat-rooms/{roomId}/profile")
-    @Operation(summary = "채팅 상대방 프로필 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "채팅 상대방 프로필 조회", description = """
+        채팅 상대방의 프로필을 조회합니다.
+
+        **응답:** nickname, gender, ageGroup, personalityTags(AI 분석 성격 태그 상위 3개)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -97,7 +116,23 @@ public class ChatController {
 
     /** 6.5 메시지 전송 (REST, 테스트용 — 프로덕션은 WebSocket) */
     @PostMapping("/api/chat-rooms/{roomId}/messages")
-    @Operation(summary = "메시지 전송 (REST)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "메시지 전송 (REST)", description = """
+        채팅 메시지를 전송합니다 (REST 방식).
+
+        **요청 필드:**
+        - `content` (필수): 메시지 본문
+        - `type` (필수): `TEXT`
+
+        **동작:**
+        1. 금칙어 검열 (SC001)
+        2. XSS 이스케이프
+        3. Redis INCR로 sequenceId 발급
+        4. 외부 연락처(전화번호/카카오/인스타) 탐지 → 플래그 처리
+
+        **실시간 채팅:** WebSocket STOMP (`/ws/chat` 연결, `/topic/chat/{roomId}` 구독)
+
+        **에러:** SC001(부적절한 내용), CR007(종료된 채팅방)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -122,7 +157,16 @@ public class ChatController {
 
     /** 6.6 채팅방 나가기 */
     @PostMapping("/api/chat-rooms/{roomId}/leave")
-    @Operation(summary = "채팅방 나가기", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "채팅방 나가기", description = """
+        채팅방을 나갑니다.
+
+        **동작:**
+        - 시스템 메시지 생성 ("상대방이 채팅방을 나갔습니다")
+        - 채팅방 상태 CHAT_LEFT로 변경
+        - WebSocket으로 상대에게 브로드캐스트
+
+        **에러:** CR002(참여자 아님)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

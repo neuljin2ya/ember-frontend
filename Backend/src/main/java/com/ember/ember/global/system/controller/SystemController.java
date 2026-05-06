@@ -22,7 +22,13 @@ public class SystemController {
 
     /** 앱 버전 확인 (강제/권장 업데이트 체크) */
     @GetMapping("/api/system/version")
-    @Operation(summary = "앱 버전 확인")
+    @Operation(summary = "앱 버전 확인", description = """
+        앱 최소/최신 버전을 확인합니다. 인증 불필요.
+
+        **응답:**
+        - `updateType`: FORCE_UPDATE(강제), RECOMMEND_UPDATE(권장), NONE(최신)
+        - `latestVersion`: 최신 버전
+        - `storeUrl`: 스토어 링크 (업데이트 필요 시)""")
     public ResponseEntity<ApiResponse<AppVersionResponse>> checkVersion(
             @RequestParam(defaultValue = "AOS") String platform,
             @RequestParam(required = false) String currentVersion) {

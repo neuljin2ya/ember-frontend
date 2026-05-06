@@ -28,7 +28,13 @@ public class IdealTypeController {
 
     /** 이상형 키워드 목록 조회 */
     @GetMapping("/api/users/ideal-type/keyword-list")
-    @Operation(summary = "이상형 키워드 목록 조회 (공개 API)")
+    @Operation(summary = "이상형 키워드 목록 조회 (공개 API)", description = """
+        이상형 키워드 마스터 목록을 조회합니다. 인증 불필요.
+
+        **응답:**
+        - 10개 키워드, category별 그룹핑 (RELATIONSHIP, EMOTION, LIFESTYLE 등)
+        - 온보딩 2단계에서 키워드 선택 UI에 사용
+        - id 값을 POST /api/users/ideal-type/keywords에 전달""")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -43,7 +49,19 @@ public class IdealTypeController {
 
     /** 이상형 키워드 설정 (온보딩 2단계) */
     @PostMapping("/api/users/ideal-type/keywords")
-    @Operation(summary = "이상형 키워드 설정 (최대 3개)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "이상형 키워드 설정 (최대 3개)", description = """
+        온보딩 2단계 — 이상형 키워드를 설정합니다.
+
+        **요청 필드:**
+        - `keywordIds`: 키워드 ID 배열 (최소 1개, 최대 3개)
+
+        **동작:**
+        - onboardingStep 1 → 2 변경
+        - ROLE_GUEST → ROLE_USER 승격 (이후 모든 인증 API 사용 가능)
+        - 이미 설정된 키워드가 있으면 덮어쓰기
+
+        **에러:** U004(3~5개 선택 필요), U005(존재하지 않는 키워드 ID)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

@@ -27,6 +27,83 @@ public class SpringDocConfig {
                 서버: https://ember-app.duckdns.org
                 인증: Bearer 토큰 (`GET /api/dev/token?userId=1` 로 발급)
 
+                # 전체 API 플로우
+
+                ## 1단계: 회원가입 + 온보딩
+                ```
+                POST /api/dev/register → 테스트 유저 생성 (accessToken 발급)
+                  ↓
+                POST /api/consent (type=USER_TERMS) → 이용약관 동의
+                POST /api/consent (type=AI_TERMS) → AI 분석 동의
+                  ↓
+                POST /api/users/nickname/generate → 랜덤 닉네임 생성
+                POST /api/users/profile → 프로필 등록 (닉네임, 성별, 생년월일, 지역)
+                  ↓
+                GET /api/users/ideal-type/keyword-list → 이상형 키워드 목록 (10개)
+                POST /api/users/ideal-type/keywords → 이상형 설정 (최대 3개) → ROLE_USER 승격
+                  ↓
+                GET /api/tutorials/pages → 튜토리얼 페이지 조회
+                POST /api/users/tutorial/complete → 튜토리얼 완료
+                ```
+
+                ## 2단계: 일기 작성 + AI 분석
+                ```
+                POST /api/diaries → 일기 작성 (일 1회, 200~1000자)
+                  ↓ (자동) AI 분석 파이프라인 → 감정/성격/라이프스타일/톤 태그 생성
+                GET /api/diaries/{diaryId} → 일기 상세 (AI 키워드 포함)
+                GET /api/users/me/ai-profile → AI 성격 분석 결과 (일기 3편 이상)
+                ```
+
+                ## 3단계: 탐색 + 매칭 신청
+                ```
+                GET /api/diaries/explore → 상대방 일기 탐색 (이성 필터링, 커서 페이징)
+                GET /api/diaries/{diaryId}/detail → 탐색 일기 상세 (성격 키워드, 다른 일기)
+                  ↓
+                POST /api/matching/{diaryId}/select → 교환 신청 (PENDING)
+                POST /api/matching/{diaryId}/skip → 넘기기 (7일간 재추천 제외)
+                  ↓
+                GET /api/matching/requests → 받은 매칭 요청 목록
+                POST /api/matching/requests/{matchingId}/accept → 수락 → 교환일기 방 자동 생성
+                ```
+
+                ## 4단계: 교환일기 (4턴 릴레이)
+                ```
+                GET /api/exchange-rooms → 교환일기 방 목록
+                GET /api/exchange-rooms/{roomId} → 방 상세 (턴 상태, 데드라인)
+                  ↓
+                POST /api/exchange-rooms/{roomId}/diaries → 교환일기 작성 (내 턴일 때만)
+                GET /api/exchange-rooms/{roomId}/diaries/{diaryId} → 상대 일기 열람
+                POST /api/exchange-rooms/{roomId}/diaries/{diaryId}/reaction → 리액션 (HEART/SAD/HAPPY/FIRE)
+                  ↓ (4턴 완료 후)
+                POST /api/exchange-rooms/{roomId}/next-step → 관계 확장 선택 (CHAT 또는 CONTINUE)
+                  - 양측 CHAT → 채팅방 자동 생성
+                  - 불일치 → 추가 라운드 (2턴)
+                ```
+
+                ## 5단계: 채팅 + 커플
+                ```
+                GET /api/chat-rooms → 채팅방 목록
+                POST /api/chat-rooms/{roomId}/messages → 메시지 전송 (REST)
+                GET /api/chat-rooms/{roomId}/messages → 메시지 이력 (커서 기반)
+                GET /api/chat-rooms/{roomId}/profile → 상대방 프로필 (성격 태그)
+                  ↓ (WebSocket STOMP 실시간 채팅은 하단 WebSocket 섹션 참조)
+                  ↓
+                POST /api/chat-rooms/{roomId}/couple-request → 커플 요청 (72시간 만료)
+                POST /api/chat-rooms/{roomId}/couple-accept → 커플 수락 → 커플 성사!
+                POST /api/chat-rooms/{roomId}/couple-reject → 커플 거절
+                ```
+
+                ## 부가 기능
+                ```
+                GET /api/notifications → 알림 목록 (매칭/교환/채팅/커플 등)
+                GET /api/notices → 공지사항 / GET /api/faq → FAQ
+                POST /api/support/inquiry → 1:1 문의
+                POST /api/users/{targetUserId}/report → 신고
+                POST /api/users/{targetUserId}/block → 차단
+                ```
+
+                ---
+
                 # Dev API 사용법
                 - `GET /api/dev/token?userId={id}` — 카카오 로그인 없이 테스트 토큰 발급
                 - `POST /api/dev/register` — 신규 테스트 유저 생성 (ROLE_GUEST)

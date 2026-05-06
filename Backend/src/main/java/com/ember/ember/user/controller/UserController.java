@@ -26,7 +26,13 @@ public class UserController {
 
     /** 랜덤 닉네임 생성 */
     @PostMapping("/api/users/nickname/generate")
-    @Operation(summary = "랜덤 닉네임 생성 (형용사+명사 조합)")
+    @Operation(summary = "랜덤 닉네임 생성 (형용사+명사 조합)", description = """
+        랜덤 닉네임을 생성합니다. 인증 불필요.
+
+        **동작:**
+        - 형용사(20개) + 명사(20개) 조합으로 생성 (예: "따뜻한별빛", "용감한하늘")
+        - 중복 검사 포함 — 기존 닉네임과 겹치지 않음
+        - 프로필 등록 전 닉네임 미리보기 용도""")
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -40,7 +46,24 @@ public class UserController {
 
     /** 프로필 등록 (온보딩 1단계) */
     @PostMapping("/api/users/profile")
-    @Operation(summary = "프로필 등록 (온보딩 1단계)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "프로필 등록 (온보딩 1단계)", description = """
+        온보딩 1단계 — 기본 프로필을 등록합니다.
+
+        **요청 필드:**
+        - `nickname` (필수): 2~10자, 한글/영문/숫자
+        - `birthDate` (필수): yyyy-MM-dd, 만 18세 이상
+        - `gender` (필수): MALE 또는 FEMALE
+        - `realName` (선택): 실명 2~5자 한글
+        - `sido` (선택): 시/도 (예: "서울특별시")
+        - `sigungu` (선택): 시/군/구 (예: "강남구")
+        - `school` (선택): 학교명
+
+        **동작:**
+        - onboardingStep 0 → 1 변경
+        - 닉네임 중복 시 U001, 미성년자 U002
+
+        **에러:** U001(닉네임 중복), U002(미성년자)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -64,7 +87,16 @@ public class UserController {
 
     /** 내 프로필 조회 */
     @GetMapping("/api/users/me")
-    @Operation(summary = "내 프로필 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "내 프로필 조회", description = """
+        현재 로그인한 사용자의 전체 프로필을 조회합니다.
+
+        **응답 포함 정보:**
+        - 기본 정보: userId, nickname, birthDate, gender, sido, sigungu, school
+        - 온보딩 상태: onboardingCompleted, onboardingStep (0=미시작, 1=프로필완료, 2=키워드완료)
+        - 이상형 키워드: idealKeywords 배열
+        - 계정 상태: accountStatus (ACTIVE/DEACTIVATED/SUSPEND_7D/SUSPEND_30D/BANNED)
+        - 제재 정보: suspensionReason, suspendedUntil, canAppeal""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -79,7 +111,15 @@ public class UserController {
 
     /** 프로필 부분 수정 */
     @PatchMapping("/api/users/me/profile")
-    @Operation(summary = "프로필 부분 수정 (닉네임/지역/학교)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "프로필 부분 수정 (닉네임/지역/학교)", description = """
+        프로필 정보를 수정합니다.
+
+        **수정 가능 필드:** nickname, realName, sido, sigungu, school
+        - 닉네임 변경은 30일 쿨다운 적용 (lastNicknameChangedAt 기준)
+        - 변경할 필드만 보내면 됨 (PATCH 방식)
+
+        **에러:** U001(닉네임 중복), U006(30일 쿨다운)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -99,7 +139,19 @@ public class UserController {
 
     /** FCM 디바이스 토큰 등록/갱신 */
     @PostMapping("/api/users/me/fcm-token")
-    @Operation(summary = "FCM 토큰 등록/갱신", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "FCM 토큰 등록/갱신", description = """
+        FCM 푸시 알림용 디바이스 토큰을 등록하거나 갱신합니다.
+
+        **요청 필드:**
+        - `fcmToken` (필수): Firebase에서 발급받은 디바이스 토큰
+        - `deviceType` (필수): `AOS` 또는 `IOS` (ANDROID, iOS 아님 주의!)
+
+        **동작:**
+        - 동일 userId+deviceType 조합이면 토큰 갱신
+        - 다른 유저가 같은 토큰을 가지고 있으면 기존 것 삭제 (디바이스 변경 대응)
+
+        **에러:** C001(잘못된 deviceType)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

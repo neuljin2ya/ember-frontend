@@ -37,7 +37,12 @@ public class TutorialController {
 
     /** 튜토리얼 페이지 목록 조회 */
     @GetMapping("/api/tutorials/pages")
-    @Operation(summary = "튜토리얼 페이지 목록 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "튜토리얼 페이지 목록 조회", description = """
+        튜토리얼 페이지 목록을 순서대로 조회합니다.
+
+        **응답:** pageOrder 오름차순 정렬된 페이지 배열
+        - 각 페이지: pageOrder, title, content, imageUrl""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<List<TutorialPageResponse>>> getTutorialPages() {
         List<TutorialPage> pages = tutorialPageRepository.findByIsActiveTrueOrderByPageOrder();
         List<TutorialPageResponse> responses = pages.stream()
@@ -48,7 +53,11 @@ public class TutorialController {
 
     /** 튜토리얼 완료 처리 */
     @PostMapping("/api/users/tutorial/complete")
-    @Operation(summary = "튜토리얼 완료 처리", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "튜토리얼 완료 처리", description = """
+        튜토리얼 완료를 처리합니다.
+
+        **동작:** tutorialCompletedAt에 현재 시간 기록. 이미 완료된 경우에도 멱등하게 동작합니다.""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @Transactional
     public ResponseEntity<ApiResponse<TutorialCompleteResponse>> completeTutorial(
             @AuthenticationPrincipal CustomUserDetails userDetails) {

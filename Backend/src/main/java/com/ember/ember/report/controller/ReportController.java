@@ -28,7 +28,20 @@ public class ReportController {
 
     /** 8.1 사용자 신고 접수 */
     @PostMapping("/api/users/{targetUserId}/report")
-    @Operation(summary = "사용자 신고", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "사용자 신고", description = """
+        사용자를 신고합니다.
+
+        **요청 필드:**
+        - `reason` (필수): 신고 사유 (예: "SPAM", "HARASSMENT")
+        - `detail` (선택): 상세 설명
+
+        **규칙:**
+        - 자기 자신 신고 불가 (R001)
+        - 동일 유저 7일 이내 중복 신고 불가 (R002)
+        - 5건 누적 시 관리자에게 자동 알림
+
+        **에러:** R001(자기 신고), R002(중복)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -54,7 +67,18 @@ public class ReportController {
 
     /** 8.2 사용자 차단 */
     @PostMapping("/api/users/{targetUserId}/block")
-    @Operation(summary = "사용자 차단 (연쇄 종료 포함)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "사용자 차단 (연쇄 종료 포함)", description = """
+        사용자를 차단합니다.
+
+        **동작 (단일 트랜잭션):**
+        1. 차단 기록 생성
+        2. 진행 중인 매칭 요청 취소
+        3. 활성 교환일기 방 종료 (TERMINATED)
+        4. 활성 채팅방 종료
+        5. 차단 상대 탐색/추천에서 영구 제외
+
+        **에러:** B001(자기 차단), B002(이미 차단)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -75,7 +99,14 @@ public class ReportController {
 
     /** 8.3 차단 해제 */
     @DeleteMapping("/api/users/{targetUserId}/block")
-    @Operation(summary = "차단 해제", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "차단 해제", description = """
+        차단을 해제합니다.
+
+        **동작:** 차단 해제 후에도 종료된 교환/채팅은 복구되지 않음
+        - 재차단 시 unique 위반 방지 처리 (reblock)
+
+        **에러:** B003(차단 기록 없음)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -96,7 +127,15 @@ public class ReportController {
 
     /** 8.4 차단 목록 조회 */
     @GetMapping("/api/users/me/block-list")
-    @Operation(summary = "차단 목록 조회 (커서 기반 페이징)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "차단 목록 조회 (커서 기반 페이징)", description = """
+        차단한 사용자 목록을 커서 기반으로 조회합니다.
+
+        **쿼리 파라미터:**
+        - `cursor` (선택): 이전 nextCursor
+        - `size` (기본 20)
+
+        **응답:** blockId, blockedUserId, blockedNickname, blockedAt""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

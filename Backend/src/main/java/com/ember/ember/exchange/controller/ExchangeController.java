@@ -29,7 +29,13 @@ public class ExchangeController {
 
     /** 5.1 교환일기 방 목록 조회 */
     @GetMapping("/api/exchange-rooms")
-    @Operation(summary = "교환일기 방 목록 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 방 목록 조회", description = """
+        현재 진행 중인 교환일기 방 목록을 조회합니다.
+
+        **응답:** ACTIVE 상태 방만 반환
+        - roomUuid, partnerNickname, status, turnCount, isMyTurn, deadlineAt
+        - isMyTurn=true이면 내가 작성할 차례""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

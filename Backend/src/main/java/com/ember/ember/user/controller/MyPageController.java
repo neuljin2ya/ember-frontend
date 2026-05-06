@@ -27,7 +27,11 @@ public class MyPageController {
 
     /** 11.1 이상형 키워드 조회 */
     @GetMapping("/api/users/me/ideal-type")
-    @Operation(summary = "이상형 키워드 조회 (마이페이지)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "이상형 키워드 조회 (마이페이지)", description = """
+        마이페이지에서 이상형 키워드를 조회합니다.
+
+        **응답:** 설정된 키워드 목록, maxSelectable(최대 선택 가능 수), nextEditableAt(다음 수정 가능 시간)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -43,7 +47,18 @@ public class MyPageController {
 
     /** 11.2 이상형 키워드 수정 */
     @PutMapping("/api/users/me/ideal-type")
-    @Operation(summary = "이상형 키워드 수정 (최대 3개, DELETE-then-INSERT)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "이상형 키워드 수정 (최대 3개, DELETE-then-INSERT)", description = """
+        이상형 키워드를 수정합니다.
+
+        **요청 필드:**
+        - `keywordIds`: 키워드 ID 배열 (최대 3개)
+
+        **동작:**
+        - 기존 키워드 전부 삭제 후 새로 INSERT (DELETE-then-INSERT)
+        - 매칭 추천 캐시(MATCHING:RECO:{userId}) 자동 무효화
+
+        **에러:** U004(키워드 수 초과)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -64,7 +79,13 @@ public class MyPageController {
 
     /** 11.3 교환일기 히스토리 조회 */
     @GetMapping("/api/users/me/history/exchange-rooms")
-    @Operation(summary = "교환일기 히스토리 (완료/만료/종료, 커서 페이징)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 히스토리 (완료/만료/종료, 커서 페이징)", description = """
+        교환일기 히스토리를 커서 기반으로 조회합니다.
+
+        **포함 상태:** COMPLETED, CHAT_CONNECTED, EXPIRED, TERMINATED, ARCHIVED
+
+        **쿼리 파라미터:** cursor, size(기본 10)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -82,7 +103,11 @@ public class MyPageController {
 
     /** 11.4 채팅 히스토리 조회 */
     @GetMapping("/api/users/me/history/chat-rooms")
-    @Operation(summary = "채팅 히스토리 (종료된 채팅방, 커서 페이징)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "채팅 히스토리 (종료된 채팅방, 커서 페이징)", description = """
+        채팅 히스토리를 커서 기반으로 조회합니다.
+
+        **쿼리 파라미터:** cursor, size(기본 10)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -100,7 +125,16 @@ public class MyPageController {
 
     /** 11.5 앱 설정 수정 */
     @PatchMapping("/api/users/me/settings")
-    @Operation(summary = "앱 설정 수정 (변경할 필드만 전송)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "앱 설정 수정 (변경할 필드만 전송)", description = """
+        앱 설정을 수정합니다.
+
+        **수정 가능 필드:**
+        - `darkMode`: 다크모드 (true/false)
+        - `language`: 언어 (ko/en)
+        - `ageFilterRange`: 탐색 연령 필터 범위 (정수, 예: 5 = ±5세)
+
+        변경할 필드만 보내면 됩니다 (Upsert).""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

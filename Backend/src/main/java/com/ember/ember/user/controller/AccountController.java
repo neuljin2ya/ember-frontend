@@ -29,7 +29,20 @@ public class AccountController {
 
     /** 10.1 회원 탈퇴 (30일 유예) */
     @PostMapping("/api/users/me/deactivate")
-    @Operation(summary = "회원 탈퇴 (소프트 딜리트, 30일 유예)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "회원 탈퇴 (소프트 딜리트, 30일 유예)", description = """
+        회원 탈퇴를 요청합니다 (30일 유예 후 영구 삭제).
+
+        **요청 필드:**
+        - `reason` (선택): 탈퇴 사유
+        - `detail` (선택): 상세 설명, 최대 500자
+
+        **동작:**
+        1. 계정 상태 DEACTIVATED, permanentDeleteAt = 30일 후
+        2. 활성 교환일기/채팅 전부 TERMINATED
+        3. Redis 키 정리 (RT, 매칭 캐시, AI 캐시)
+        4. 30일 내 POST /api/users/me/restore로 복구 가능
+        5. 30일 후 배치에서 영구 삭제 (일기 익명화, 개인정보 삭제)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -47,7 +60,12 @@ public class AccountController {
 
     /** 10.2 계정 복구 (마이페이지 경로) */
     @PostMapping("/api/users/me/restore")
-    @Operation(summary = "탈퇴 유예 계정 복구", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "탈퇴 유예 계정 복구", description = """
+        탈퇴 유예 계정을 복구합니다 (마이페이지 경로).
+
+        **동작:** DEACTIVATED → ACTIVE, 탈퇴 관련 필드 초기화
+        - 30일 초과 시 복구 불가 (영구 삭제됨)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -63,7 +81,20 @@ public class AccountController {
 
     /** 10.3 AI 성격 분석 결과 조회 */
     @GetMapping("/api/users/me/ai-profile")
-    @Operation(summary = "AI 성격 분석 결과 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "AI 성격 분석 결과 조회", description = """
+        AI 성격 분석 결과를 조회합니다.
+
+        **활성화 조건:** 일기 3편 이상 작성
+        - 3편 미만이면 analysisAvailable=false
+
+        **응답 (활성화 시):**
+        - dominantPersonalityTags: 관계성향 상위 3개 (예: "안정 추구", "공감 우선")
+        - dominantEmotionTags: 감정 상위 3개
+        - dominantLifestyleTags: 라이프스타일 상위 3개
+        - dominantToneTags: 글쓰기 톤 상위 3개
+
+        각 태그는 diary_keywords 테이블의 빈도 집계 기반""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -79,7 +110,19 @@ public class AccountController {
 
     /** 10.4 제재 이의신청 */
     @PostMapping("/api/users/me/appeals")
-    @Operation(summary = "제재 이의신청", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "제재 이의신청", description = """
+        제재에 대한 이의신청을 접수합니다.
+
+        **요청 필드:**
+        - `sanctionId` (필수): 제재 이력 ID
+        - `reason` (필수): 이의신청 사유, 20~500자
+
+        **조건:** SUSPEND_7D 또는 SUSPEND_30D 상태만 가능
+        - BANNED(영구 정지)는 이의신청 불가
+        - 동일 제재에 중복 이의신청 불가
+
+        **에러:** AP001(정지 상태 아님), AP002(이미 접수됨), AP003(영구 정지)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -104,7 +147,17 @@ public class AccountController {
 
     /** 10.5 AI 동의 철회 */
     @DeleteMapping("/api/consent")
-    @Operation(summary = "AI 분석 동의 철회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "AI 분석 동의 철회", description = """
+        AI 분석 동의를 철회합니다.
+
+        **동작:**
+        - AI_ANALYSIS, AI_DATA_USAGE 모두 REVOKED 이력 INSERT
+        - Redis AI 캐시 삭제
+        - 철회 후 AI 분석/매칭 추천이 중단됨
+        - 동의 이력이 없으면 AC001 에러
+
+        **에러:** AC001(동의 이력 없음)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

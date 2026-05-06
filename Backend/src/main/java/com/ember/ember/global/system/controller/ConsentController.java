@@ -36,7 +36,20 @@ public class ConsentController {
 
     /** 약관/AI 분석 동의 등록 */
     @PostMapping("/api/consent")
-    @Operation(summary = "약관 동의 등록", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "약관 동의 등록", description = """
+        AI 분석 동의를 등록합니다.
+
+        **요청 필드:**
+        - `consentType` (필수): `AI_ANALYSIS` 또는 `AI_DATA_USAGE` (다른 값은 C001 에러)
+
+        **동작:**
+        - ai_consent_log 테이블에 GRANTED 이력 INSERT (Append-Only)
+        - AI_ANALYSIS: 일기 성격/감정 분석 동의
+        - AI_DATA_USAGE: 매칭 유사도 계산 등 데이터 활용 동의
+        - 온보딩 시 두 타입 모두 등록 필요
+
+        **주의:** USER_TERMS, AI_TERMS는 더 이상 사용하지 않습니다.""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<Void>> registerConsent(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody ConsentRequest request,

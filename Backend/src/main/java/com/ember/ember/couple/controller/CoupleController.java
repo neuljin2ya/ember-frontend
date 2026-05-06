@@ -29,7 +29,16 @@ public class CoupleController {
 
     /** 7.1 커플 요청 전송 */
     @PostMapping("/api/chat-rooms/{roomId}/couple-request")
-    @Operation(summary = "커플 요청 전송", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "커플 요청 전송", description = """
+        채팅 상대에게 커플 요청을 보냅니다.
+
+        **동작:**
+        - 72시간 만료 타이머 시작
+        - 24시간/48시간 후 리마인드 알림 발송 예약
+        - 이미 요청 보냈으면 CR003
+
+        **에러:** CR003(이미 요청), CR004(이미 커플)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -49,7 +58,16 @@ public class CoupleController {
 
     /** 7.2 커플 요청 수락 */
     @PostMapping("/api/chat-rooms/{roomId}/couple-accept")
-    @Operation(summary = "커플 요청 수락", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "커플 요청 수락", description = """
+        커플 요청을 수락합니다.
+
+        **동작:**
+        - Couple 엔티티 생성 (confirmedAt 기록)
+        - ChatRoom 상태 COUPLE_CONFIRMED로 변경
+        - 양측에게 COUPLE_CONFIRMED 알림
+
+        **에러:** CR005(요청 없음), CR006(만료)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -69,7 +87,11 @@ public class CoupleController {
 
     /** 7.3 커플 요청 거절 */
     @PostMapping("/api/chat-rooms/{roomId}/couple-reject")
-    @Operation(summary = "커플 요청 거절", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "커플 요청 거절", description = """
+        커플 요청을 거절합니다.
+
+        **에러:** CR005(요청 없음)""",
+        security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
