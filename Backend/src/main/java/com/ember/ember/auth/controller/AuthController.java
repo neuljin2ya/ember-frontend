@@ -32,6 +32,8 @@ public class AuthController {
     @Operation(summary = "소셜 로그인/회원가입", description = """
         카카오 소셜 로그인 또는 회원가입을 처리합니다.
 
+        > 📱 **화면:** 2.2 소셜 회원가입 및 로그인 (카카오) — [카카오로 시작] 버튼 탭
+
         **요청 필드:**
         - `provider`: 소셜 로그인 제공자 (현재 `KAKAO`만 지원)
         - `accessToken`: 카카오 SDK에서 발급받은 Access Token
@@ -63,6 +65,8 @@ public class AuthController {
     @Operation(summary = "토큰 갱신 (Refresh Token Rotation)", description = """
         Access Token 만료 시 Refresh Token으로 새 토큰 쌍을 발급합니다.
 
+        > 📱 **화면:** 1.1 앱 스플래시 (자동 로그인) / 13.2 JWT 토큰 생명주기
+
         **요청 필드:**
         - `refreshToken`: 이전에 발급받은 Refresh Token
 
@@ -91,6 +95,8 @@ public class AuthController {
     @PostMapping("/api/auth/logout")
     @Operation(summary = "로그아웃", description = """
         현재 세션을 로그아웃합니다.
+
+        > 📱 **화면:** 2.5 로그아웃 — 마이페이지 > 설정 > [로그아웃] 버튼
 
         **동작:**
         - Access Token을 Redis 블랙리스트에 등록 (만료 시간까지 유지)
@@ -121,6 +127,8 @@ public class AuthController {
     @PostMapping("/api/auth/restore")
     @Operation(summary = "탈퇴 유예 계정 복구", description = """
         탈퇴 유예 기간(30일) 내 계정을 복구합니다.
+
+        > 📱 **화면:** 2.6 계정 복구 — 소셜 로그인 시 PENDING_DELETION 감지 → [계정 복구] 버튼
 
         **요청 필드:**
         - `restoreToken`: 소셜 로그인 응답에서 받은 복구 토큰

@@ -28,6 +28,8 @@ public class NotificationController {
     @Operation(summary = "알림 목록 조회 (최근 30일)", description = """
         최근 30일간의 알림 목록을 조회합니다.
 
+        > 📱 **화면:** 10.2 FCM 푸시 알림 수신 이력 (알림 센터) — 화면 진입 (알림 목록)
+
         **알림 타입:**
         - MATCHING_REQUEST: 매칭 신청 알림
         - MATCHING_MATCHED: 매칭 성사 알림
@@ -51,7 +53,8 @@ public class NotificationController {
 
     /** 9.2 특정 알림 읽음 처리 */
     @PatchMapping("/api/notifications/{notificationId}/read")
-    @Operation(summary = "알림 읽음 처리", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "알림 읽음 처리", description = """
+        > 📱 **화면:** 10.2 알림 센터 — 알림 카드 탭 (개별 읽음 처리)""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -75,6 +78,8 @@ public class NotificationController {
     @Operation(summary = "전체 알림 읽음 처리", description = """
         모든 미읽음 알림을 한 번에 읽음 처리합니다.
 
+        > 📱 **화면:** 10.2 알림 센터 — [모두 읽음] 버튼 탭
+
         **응답:** updatedCount(읽음 처리된 개수), readAt(처리 시간)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -94,6 +99,8 @@ public class NotificationController {
     @GetMapping("/api/users/me/notification-settings")
     @Operation(summary = "알림 설정 조회", description = """
         알림 설정을 조회합니다.
+
+        > 📱 **화면:** 10.1 푸시 알림 환경 설정 — 화면 진입 (현재 알림 설정 조회)
 
         **6종 카테고리:**
         - matching: 매칭 관련 알림
@@ -120,6 +127,8 @@ public class NotificationController {
     @PatchMapping("/api/users/me/notification-settings")
     @Operation(summary = "알림 설정 수정 (변경할 필드만 전송)", description = """
         알림 설정을 수정합니다. 변경할 항목만 보내면 됩니다 (PATCH).
+
+        > 📱 **화면:** 10.1 푸시 알림 환경 설정 — 토글 변경 시 (즉시 업데이트)
 
         **요청 예시:** `{"matching":false}` → matching만 끔, 나머지 유지""",
         security = @SecurityRequirement(name = "bearerAuth"))

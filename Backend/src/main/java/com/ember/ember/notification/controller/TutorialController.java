@@ -40,6 +40,8 @@ public class TutorialController {
     @Operation(summary = "튜토리얼 페이지 목록 조회", description = """
         튜토리얼 페이지 목록을 순서대로 조회합니다.
 
+        > 📱 **화면:** 3.3 온보딩 튜토리얼 — 화면 진입 시 (튜토리얼 페이지 로드)
+
         **응답:** pageOrder 오름차순 정렬된 페이지 배열
         - 각 페이지: pageOrder, title, content, imageUrl""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -55,6 +57,8 @@ public class TutorialController {
     @PostMapping("/api/users/tutorial/complete")
     @Operation(summary = "튜토리얼 완료 처리", description = """
         튜토리얼 완료를 처리합니다.
+
+        > 📱 **화면:** 3.3 온보딩 튜토리얼 — [건너뛰기] 또는 마지막 [시작하기] 탭
 
         **동작:** tutorialCompletedAt에 현재 시간 기록. 이미 완료된 경우에도 멱등하게 동작합니다.""",
         security = @SecurityRequirement(name = "bearerAuth"))

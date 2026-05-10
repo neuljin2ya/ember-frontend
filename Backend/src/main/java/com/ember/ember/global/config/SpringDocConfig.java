@@ -28,6 +28,56 @@ public class SpringDocConfig {
                 - 신규 테스트: `POST /api/dev/register` → 응답의 accessToken 사용
                 - 기존 유저 재로그인: `GET /api/dev/token?userId={id}` → 해당 유저의 토큰 발급
 
+                # 화면-API 매핑 요약
+
+                | 화면 | 화면명 | 호출 API |
+                |------|--------|----------|
+                | 1.1 | 앱 스플래시 (자동 로그인) | `POST /api/auth/refresh` |
+                | 1.2 | 앱 권한 요청 (알림) | `POST /api/users/me/fcm-token` |
+                | 1.3 | 앱 업데이트 알림 | `GET /api/system/version` |
+                | 2.2 | 소셜 로그인/회원가입 (카카오) | `POST /api/auth/social` → `POST /api/consent` × 2 → `POST /api/users/me/fcm-token` |
+                | 2.5 | 로그아웃 | `POST /api/auth/logout` |
+                | 2.6 | 탈퇴 유예 계정 복구 | `POST /api/auth/restore` |
+                | 3.1 | 기본 프로필 설정 (온보딩 1단계) | `POST /api/users/nickname/generate` → `POST /api/users/profile` |
+                | 3.2 | 이상형 키워드 설정 (온보딩 2단계) | `GET /api/users/ideal-type/keyword-list` → `POST /api/users/ideal-type/keywords` |
+                | 3.3 | 온보딩 튜토리얼 | `GET /api/tutorials/pages` → `POST /api/users/tutorial/complete` |
+                | 4.1 | 일기 작성 | `GET /api/diaries/today` → `POST /api/diaries` / `POST /api/diaries/draft` |
+                | 4.2 | AI 성격 분석 비동기 | `POST /api/diaries` (자동 트리거) → `GET /api/users/me/ai-profile` |
+                | 4.3 | 수요일 주제 일기 | `GET /api/diaries/weekly-topic` → `POST /api/diaries` |
+                | 4.4 | 일기 히스토리 / 수정 | `GET /api/diaries` → `GET /api/diaries/{id}` → `PATCH /api/diaries/{id}` |
+                | 5.1 | 일기 탐색 (Pull 방식) | `GET /api/diaries/explore` → `GET /api/diaries/{id}/detail` |
+                | 5.2 | 추천 일기 블라인드 | `GET /api/matching/recommendations` → `GET /api/matching/recommendations/{id}/preview` |
+                | 5.3 | 라이프스타일 리포트 | `GET /api/matching/lifestyle-report` (5.2 상세 하단 스크롤 섹션) |
+                | 5.4 | 교환 신청 / 넘기기 | `POST /api/matching/{id}/select` / `POST /api/matching/{id}/skip` |
+                | 5.5 | 받은 매칭 요청 | `GET /api/matching/requests` → `POST /api/matching/requests/{id}/accept` |
+                | 6.1 | 교환일기 방 목록/상세 | `GET /api/exchange-rooms` → `GET /api/exchange-rooms/{id}` |
+                | 6.2 | 릴레이 교환일기 작성 | `POST /api/exchange-rooms/{id}/diaries` / `GET .../diaries/{id}` |
+                | 6.3 | 상대 일기 수신 + 리액션 | `GET .../diaries/{id}` → `POST .../diaries/{id}/reaction` |
+                | 6.4 | 제한시간 리마인드 | `GET /api/exchange-rooms/{id}` (폴링) |
+                | 6.5 | 교환 완료 AI 리포트 | `GET /api/exchange-rooms/{id}/report` |
+                | 7.1 | 관계 확장 선택 | `POST .../next-step` → `GET .../next-step/status` → `POST .../chat` |
+                | 8.1 | 채팅방 진입 / 프로필 | `GET /api/chat-rooms` → `GET /api/chat-rooms/{id}/profile` |
+                | 8.2 | 실시간 메시지 | `GET /api/chat-rooms/{id}/messages` + WebSocket `/ws/chat` |
+                | 8.3 | 메시지 검열 | `POST /api/chat-rooms/{id}/messages` (BE 내부 자동 스캔) |
+                | 8.4 | 커플 요청/수락/거절 | `POST .../couple-request` → `POST .../couple-accept` / `couple-reject` |
+                | 8.5 | 채팅방 나가기 | `POST /api/chat-rooms/{id}/leave` |
+                | 9.1 | 내 프로필 조회/수정 | `GET /api/users/me` → `PATCH /api/users/me/profile` / `PATCH .../settings` |
+                | 9.2 | 이상형 키워드 수정 | `GET /api/users/me/ideal-type` → `PUT /api/users/me/ideal-type` |
+                | 9.3 | AI 성격 분석 결과 | `GET /api/users/me/ai-profile` |
+                | 9.4 | 교환/채팅 히스토리 | `GET .../history/exchange-rooms` / `GET .../history/chat-rooms` |
+                | 10.1 | 알림 환경 설정 | `GET /api/users/me/notification-settings` → `PATCH ...` |
+                | 10.2 | 알림 센터 | `GET /api/notifications` → `PATCH .../read` / `PATCH .../read-all` |
+                | 11.1 | 사용자 신고 | `POST /api/users/{id}/report` |
+                | 11.2 | 사용자 차단 | `POST /api/users/{id}/block` / `DELETE .../block` / `GET .../block-list` |
+                | 11.3 | 회원 탈퇴 / 복구 | `POST /api/users/me/deactivate` / `POST .../restore` |
+                | 11.5 | 제재 이의신청 | `POST /api/users/me/appeals` |
+                | 13.3 | AI 동의 등록/철회 | `POST /api/consent` / `DELETE /api/consent` |
+                | 14.1 | 일기 임시저장 | `POST /api/diaries/draft` / `GET .../drafts` / `DELETE .../draft/{id}` |
+                | 14.2 | 공지/배너 | `GET /api/notices` / `GET .../banners` / `GET .../unread-count` / `GET .../{id}` |
+                | 14.3 | FAQ/고객지원 | `GET /api/faq` / `POST /api/support/inquiry` / `GET .../inquiries` / `GET .../{id}` |
+
+                ---
+
                 # 전체 API 플로우
 
                 ## 1단계: 로그인 + 온보딩

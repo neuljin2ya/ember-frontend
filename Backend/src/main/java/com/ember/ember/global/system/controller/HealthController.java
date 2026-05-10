@@ -22,6 +22,8 @@ public class HealthController {
     @Operation(summary = "서버 헬스체크", description = """
         서버 상태를 확인합니다. 인증 불필요.
 
+        > 📱 **화면:** (내부 모니터링) — 앱/서버 상태 확인용
+
         **응답:** status("ok"), profile("local"/"prod"), timestamp(ISO 8601)""")
     @GetMapping("/api/health")
     public ResponseEntity<ApiResponse<HealthResponse>> health() {

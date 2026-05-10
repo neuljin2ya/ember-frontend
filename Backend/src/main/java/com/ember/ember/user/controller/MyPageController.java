@@ -30,6 +30,8 @@ public class MyPageController {
     @Operation(summary = "이상형 키워드 조회 (마이페이지)", description = """
         마이페이지에서 이상형 키워드를 조회합니다.
 
+        > 📱 **화면:** 9.2 내 이상형 키워드 수정 — 화면 진입 시
+
         **응답:** 설정된 키워드 목록, maxSelectable(최대 선택 가능 수), nextEditableAt(다음 수정 가능 시간)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -49,6 +51,8 @@ public class MyPageController {
     @PutMapping("/api/users/me/ideal-type")
     @Operation(summary = "이상형 키워드 수정 (최대 3개, DELETE-then-INSERT)", description = """
         이상형 키워드를 수정합니다.
+
+        > 📱 **화면:** 9.2 내 이상형 키워드 수정 — [저장] 버튼 탭
 
         **요청 필드:**
         - `keywordIds`: 키워드 ID 배열 (최대 3개)
@@ -82,6 +86,8 @@ public class MyPageController {
     @Operation(summary = "교환일기 히스토리 (완료/만료/종료, 커서 페이징)", description = """
         교환일기 히스토리를 커서 기반으로 조회합니다.
 
+        > 📱 **화면:** 9.4 나의 교환 일기 / 채팅 히스토리 — [교환 일기] 탭
+
         **포함 상태:** COMPLETED, CHAT_CONNECTED, EXPIRED, TERMINATED, ARCHIVED
 
         **쿼리 파라미터:** cursor, size(기본 10)""",
@@ -106,6 +112,8 @@ public class MyPageController {
     @Operation(summary = "채팅 히스토리 (종료된 채팅방, 커서 페이징)", description = """
         채팅 히스토리를 커서 기반으로 조회합니다.
 
+        > 📱 **화면:** 9.4 나의 교환 일기 / 채팅 히스토리 — [채팅방] 탭
+
         **쿼리 파라미터:** cursor, size(기본 10)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -127,6 +135,8 @@ public class MyPageController {
     @PatchMapping("/api/users/me/settings")
     @Operation(summary = "앱 설정 수정 (변경할 필드만 전송)", description = """
         앱 설정을 수정합니다.
+
+        > 📱 **화면:** 9.1 내 프로필 조회 및 수정 — [환경설정] 저장 탭
 
         **수정 가능 필드:**
         - `darkMode`: 다크모드 (true/false)

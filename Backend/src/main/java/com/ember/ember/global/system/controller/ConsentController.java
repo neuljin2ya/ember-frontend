@@ -39,6 +39,8 @@ public class ConsentController {
     @Operation(summary = "약관 동의 등록", description = """
         AI 분석 동의를 등록합니다.
 
+        > 📱 **화면:** 2.2 소셜 회원가입 — [전체 동의] 탭 (신규 가입 시) / 13.3 민감 데이터 처리
+
         **요청 필드:**
         - `consentType` (필수): `AI_ANALYSIS` 또는 `AI_DATA_USAGE` (다른 값은 C001 에러)
 

@@ -34,6 +34,8 @@ public class DiaryController {
     @Operation(summary = "당일 일기 작성 여부 확인", description = """
         오늘 일기를 이미 작성했는지 확인합니다.
 
+        > 📱 **화면:** 4.1 일기 작성 기본 플로우 — 에디터 진입 시 (오늘 일기 여부 확인)
+
         **응답:**
         - `exists`: true이면 오늘 이미 작성함
         - `diaryId`: 작성한 일기 ID (exists=false이면 null)
@@ -55,6 +57,8 @@ public class DiaryController {
     @PostMapping("/api/diaries")
     @Operation(summary = "일기 작성 (일 1회, 200~1000자)", description = """
         새 일기를 작성합니다. 하루 1회만 가능.
+
+        > 📱 **화면:** 4.1 일기 작성 — [제출] 버튼 / 4.2 AI 분석 트리거 / 4.3 수요일 주제 일기
 
         **요청 필드:**
         - `content` (필수): 일기 본문, 200~1000자
@@ -101,6 +105,8 @@ public class DiaryController {
     @Operation(summary = "내 일기 목록 조회 (최신순, 페이징)", description = """
         내 일기 목록을 페이징 조회합니다.
 
+        > 📱 **화면:** 4.4 나의 일기 히스토리 — 화면 진입 / 월 탭 변경 시
+
         **쿼리 파라미터:**
         - `page` (기본 0): 페이지 번호
         - `size` (기본 10): 페이지 크기
@@ -125,6 +131,8 @@ public class DiaryController {
     @GetMapping("/api/diaries/{diaryId}")
     @Operation(summary = "일기 상세 조회 (AI 분석 결과 포함)", description = """
         일기 상세를 조회합니다. 본인 일기만 조회 가능.
+
+        > 📱 **화면:** 4.4 나의 일기 히스토리 — 일기 카드 탭 (상세 진입)
 
         **응답 포함:**
         - 일기 본문, 날짜, visibility
@@ -155,6 +163,8 @@ public class DiaryController {
     @PatchMapping("/api/diaries/{diaryId}")
     @Operation(summary = "당일 일기 수정 (AI 재분석 트리거)", description = """
         당일 작성한 일기만 수정할 수 있습니다.
+
+        > 📱 **화면:** 4.4 나의 일기 히스토리 — 당일 카드 [수정] 버튼 탭
 
         **요청 필드:**
         - `content` (필수): 수정할 본문, 200~1000자
@@ -193,6 +203,8 @@ public class DiaryController {
     @Operation(summary = "이번 주 수요일 주제 조회", description = """
         이번 주 수요일 주제를 조회합니다. 인증 불필요.
 
+        > 📱 **화면:** 4.3 주간 랜덤 주제 일기 작성 — 홈 배너 [오늘의 주제] 탭
+
         **응답:**
         - 수요일이면 `isActive=true`, 다른 요일이면 `false`
         - 주제가 등록되지 않은 주에는 topicId/title이 null
@@ -211,6 +223,8 @@ public class DiaryController {
     @GetMapping("/api/diaries/drafts")
     @Operation(summary = "임시저장 목록 조회", description = """
         임시저장된 일기 목록을 조회합니다.
+
+        > 📱 **화면:** 14.1 일기 서버 임시 저장 — 임시저장 목록 화면 진입 시
 
         **응답:** 최대 3건, 최신순 정렬
         - draftId, content(전체 본문), savedAt
@@ -232,6 +246,8 @@ public class DiaryController {
     @PostMapping("/api/diaries/draft")
     @Operation(summary = "임시저장 생성 (최대 3건)", description = """
         일기를 임시저장합니다.
+
+        > 📱 **화면:** 4.1 일기 작성 / 14.1 일기 서버 임시 저장 — [임시저장] 버튼 탭
 
         **요청 필드:**
         - `content` (필수): 임시저장할 본문 (글자 수 제한 없음)
@@ -262,6 +278,8 @@ public class DiaryController {
     @DeleteMapping("/api/diaries/draft/{draftId}")
     @Operation(summary = "임시저장 삭제", description = """
         임시저장을 삭제합니다.
+
+        > 📱 **화면:** 14.1 일기 서버 임시 저장 — 임시저장 항목 [삭제] 탭
 
         **에러:** D007(존재하지 않음)""",
         security = @SecurityRequirement(name = "bearerAuth"))

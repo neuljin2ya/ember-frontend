@@ -34,6 +34,8 @@ public class MatchingController {
     @Operation(summary = "일기 탐색 (커서 기반 페이징, 정렬/필터 지원)", description = """
         다른 사용자의 일기를 탐색합니다 (카드 스와이프 UI).
 
+        > 📱 **화면:** 5.1 일기 탐색 (Pull 방식) — 화면 진입 / 정렬·필터 변경 시
+
         **쿼리 파라미터:**
         - `cursor` (선택): 이전 응답의 nextCursor 값
         - `size` (기본 10): 한 번에 가져올 개수
@@ -74,6 +76,8 @@ public class MatchingController {
     @Operation(summary = "탐색 일기 상세 조회 (유사도 배지 + 작성자 다른 일기)", description = """
         탐색에서 선택한 일기의 상세를 조회합니다.
 
+        > 📱 **화면:** 5.1 일기 탐색 — 카드 [자세히 보기] 탭 → 상세 화면
+
         **응답 포함:**
         - 일기 전체 본문
         - 작성자 성격 키워드 (AI 분석 결과)
@@ -97,6 +101,8 @@ public class MatchingController {
     @GetMapping("/api/matching/recommendations")
     @Operation(summary = "AI 기반 추천 일기 목록", description = """
         AI 기반 매칭 추천 목록을 조회합니다.
+
+        > 📱 **화면:** 5.2 추천 일기 블라인드 노출 — 화면 진입 (추천 탭)
 
         **동작:**
         - KoSimCSE 유사도 기반 상위 추천
@@ -129,6 +135,8 @@ public class MatchingController {
     @Operation(summary = "추천 일기 블라인드 미리보기", description = """
         추천 일기의 블라인드 미리보기를 조회합니다.
 
+        > 📱 **화면:** 5.2 추천 일기 블라인드 노출 — 블러 카드 [자세히 보기] 탭
+
         **응답:**
         - 본문 앞 100자만 노출
         - 유사도 배지: 0.7이상 '잘 맞을 것 같아요', 0.5~0.7 '공통점이 있어요'""",
@@ -150,6 +158,8 @@ public class MatchingController {
     @GetMapping("/api/matching/lifestyle-report")
     @Operation(summary = "라이프스타일 분석 리포트", description = """
         내 라이프스타일 리포트를 조회합니다.
+
+        > 📱 **화면:** 5.3 라이프스타일 리포트 — 탐색 상세(5.2) 하단 "우리의 공통점" 스크롤 섹션
 
         **활성화 조건:** 일기 5편 이상 작성
         - 5편 미만이면 analysisAvailable=false, requiredDiaryCount=5 반환
@@ -174,6 +184,8 @@ public class MatchingController {
     @Operation(summary = "받은 매칭 요청 목록 조회", description = """
         받은 매칭 요청 목록을 조회합니다.
 
+        > 📱 **화면:** 5.5 받은 매칭 요청 확인 — 탐색 화면 AppBar ✉️ 아이콘 탭
+
         **응답:** 요청자 닉네임, 연령대, 일기 미리보기 포함
         - matchingId를 POST /api/matching/requests/{matchingId}/accept에 전달""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -193,6 +205,8 @@ public class MatchingController {
     @PostMapping("/api/matching/requests/{matchingId}/accept")
     @Operation(summary = "매칭 요청 수락 (매칭 성사)", description = """
         매칭 요청을 수락합니다.
+
+        > 📱 **화면:** 5.5 받은 매칭 요청 확인 — [✅ 수락] 버튼 탭
 
         **동작:**
         - 매칭 상태 PENDING → MATCHED
@@ -222,6 +236,8 @@ public class MatchingController {
     @PostMapping("/api/matching/{diaryId}/select")
     @Operation(summary = "교환일기 신청 (상대 일기 선택)", description = """
         해당 일기 작성자에게 교환일기를 신청합니다.
+
+        > 📱 **화면:** 5.4 상대방 일기 선택 — 상세 화면 [💌 교환 신청] 버튼 탭
 
         **동작:**
         - PENDING 상태로 매칭 요청 생성
@@ -256,6 +272,8 @@ public class MatchingController {
     @PostMapping("/api/matching/{diaryId}/skip")
     @Operation(summary = "추천 일기 넘기기 (7일 재추천 제외)", description = """
         해당 일기를 넘깁니다.
+
+        > 📱 **화면:** 5.4 상대방 일기 선택 — [다음 일기 보기] 탭 (skip)
 
         **동작:** matching_pass 테이블에 기록, 7일간 탐색에서 재노출 방지""",
         security = @SecurityRequirement(name = "bearerAuth"))

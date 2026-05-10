@@ -32,6 +32,8 @@ public class ExchangeController {
     @Operation(summary = "교환일기 방 목록 조회", description = """
         현재 진행 중인 교환일기 방 목록을 조회합니다.
 
+        > 📱 **화면:** 6.1 교환 일기 매칭 성사 및 방 생성 — 화면 진입 (교환 방 목록 탭)
+
         **응답:** ACTIVE 상태 방만 반환
         - roomUuid, partnerNickname, status, turnCount, isMyTurn, deadlineAt
         - isMyTurn=true이면 내가 작성할 차례""",
@@ -50,7 +52,8 @@ public class ExchangeController {
 
     /** 5.2 교환일기 방 상세 조회 */
     @GetMapping("/api/exchange-rooms/{roomId}")
-    @Operation(summary = "교환일기 방 상세 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 방 상세 조회", description = """
+        > 📱 **화면:** 6.1 교환방 상세 / 6.2 릴레이 작성 / 6.4 제한시간 리마인드 — 방 카드 탭 / 폴링""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -70,7 +73,8 @@ public class ExchangeController {
 
     /** 5.3 교환일기 개별 열람 */
     @GetMapping("/api/exchange-rooms/{roomId}/diaries/{diaryId}")
-    @Operation(summary = "교환일기 개별 열람 (읽음 처리)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 개별 열람 (읽음 처리)", description = """
+        > 📱 **화면:** 6.2 릴레이 작성 (이전 일기 조회) / 6.3 상대방 일기 수신 (푸시 → 방 진입)""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -91,7 +95,8 @@ public class ExchangeController {
 
     /** 5.4 교환일기 작성 */
     @PostMapping("/api/exchange-rooms/{roomId}/diaries")
-    @Operation(summary = "교환일기 릴레이 작성 (턴 기반)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 릴레이 작성 (턴 기반)", description = """
+        > 📱 **화면:** 6.2 릴레이 교환 일기 작성 — [제출] 버튼 탭 (내 턴 일기 작성 완료)""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "작성 성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -116,7 +121,8 @@ public class ExchangeController {
 
     /** 5.5 리액션 등록 */
     @PostMapping("/api/exchange-rooms/{roomId}/diaries/{diaryId}/reaction")
-    @Operation(summary = "교환일기 감정 리액션 등록", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 감정 리액션 등록", description = """
+        > 📱 **화면:** 6.3 상대방 일기 수신 / 읽기 전용 + 리액션 — 리액션 버튼 탭""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -138,7 +144,8 @@ public class ExchangeController {
 
     /** 5.6 공통점 리포트 조회 */
     @GetMapping("/api/exchange-rooms/{roomId}/report")
-    @Operation(summary = "교환일기 공통점 리포트 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "교환일기 공통점 리포트 조회", description = """
+        > 📱 **화면:** 6.5 교환 완료 후 '우리의 공통점' AI 리포트 — 교환 2회 왕복 완료 후 진입""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -158,7 +165,8 @@ public class ExchangeController {
 
     /** 5.7 관계 확장 선택 */
     @PostMapping("/api/exchange-rooms/{roomId}/next-step")
-    @Operation(summary = "관계 확장 방향 선택 (CHAT/CONTINUE)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "관계 확장 방향 선택 (CHAT/CONTINUE)", description = """
+        > 📱 **화면:** 7.1 관계 확장 선택 — 채팅/교환 계속/종료 선택 제출""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -179,7 +187,8 @@ public class ExchangeController {
 
     /** 5.8 관계 확장 선택 상태 조회 */
     @GetMapping("/api/exchange-rooms/{roomId}/next-step/status")
-    @Operation(summary = "관계 확장 선택 상태 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "관계 확장 선택 상태 조회", description = """
+        > 📱 **화면:** 7.1 관계 확장 선택 — 결과 대기 폴링 (양측 선택 조회)""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

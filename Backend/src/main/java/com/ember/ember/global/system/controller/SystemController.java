@@ -25,6 +25,8 @@ public class SystemController {
     @Operation(summary = "앱 버전 확인", description = """
         앱 최소/최신 버전을 확인합니다. 인증 불필요.
 
+        > 📱 **화면:** 1.3 앱 업데이트 강제/권장 알림 — 앱 스플래시 직후 (버전 체크)
+
         **응답:**
         - `updateType`: FORCE_UPDATE(강제), RECOMMEND_UPDATE(권장), NONE(최신)
         - `latestVersion`: 최신 버전

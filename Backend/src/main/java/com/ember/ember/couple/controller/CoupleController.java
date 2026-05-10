@@ -32,6 +32,8 @@ public class CoupleController {
     @Operation(summary = "커플 요청 전송", description = """
         채팅 상대에게 커플 요청을 보냅니다.
 
+        > 📱 **화면:** 8.4 커플 확정 요청 / 수락 — [커플 요청 보내기] 버튼 탭
+
         **동작:**
         - 72시간 만료 타이머 시작
         - 24시간/48시간 후 리마인드 알림 발송 예약
@@ -61,6 +63,8 @@ public class CoupleController {
     @Operation(summary = "커플 요청 수락", description = """
         커플 요청을 수락합니다.
 
+        > 📱 **화면:** 8.4 커플 확정 요청 / 수락 — 요청 수신 후 [수락] 버튼 탭
+
         **동작:**
         - Couple 엔티티 생성 (confirmedAt 기록)
         - ChatRoom 상태 COUPLE_CONFIRMED로 변경
@@ -89,6 +93,8 @@ public class CoupleController {
     @PostMapping("/api/chat-rooms/{roomId}/couple-reject")
     @Operation(summary = "커플 요청 거절", description = """
         커플 요청을 거절합니다.
+
+        > 📱 **화면:** 8.4 커플 확정 요청 / 수락 — 요청 수신 후 [거절] 버튼 탭
 
         **에러:** CR005(요청 없음)""",
         security = @SecurityRequirement(name = "bearerAuth"))

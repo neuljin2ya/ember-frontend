@@ -31,6 +31,8 @@ public class ReportController {
     @Operation(summary = "사용자 신고", description = """
         사용자를 신고합니다.
 
+        > 📱 **화면:** 11.1 불량 사용자 신고 — [신고 제출] 버튼 탭
+
         **요청 필드:**
         - `reason` (필수): 신고 사유 (예: "SPAM", "HARASSMENT")
         - `detail` (선택): 상세 설명
@@ -70,6 +72,8 @@ public class ReportController {
     @Operation(summary = "사용자 차단 (연쇄 종료 포함)", description = """
         사용자를 차단합니다.
 
+        > 📱 **화면:** 11.2 사용자 차단 — 프로필/채팅방에서 [차단] 탭
+
         **동작 (단일 트랜잭션):**
         1. 차단 기록 생성
         2. 진행 중인 매칭 요청 취소
@@ -102,6 +106,8 @@ public class ReportController {
     @Operation(summary = "차단 해제", description = """
         차단을 해제합니다.
 
+        > 📱 **화면:** 11.2 사용자 차단 — 차단 목록에서 [해제] 탭
+
         **동작:** 차단 해제 후에도 종료된 교환/채팅은 복구되지 않음
         - 재차단 시 unique 위반 방지 처리 (reblock)
 
@@ -129,6 +135,8 @@ public class ReportController {
     @GetMapping("/api/users/me/block-list")
     @Operation(summary = "차단 목록 조회 (커서 기반 페이징)", description = """
         차단한 사용자 목록을 커서 기반으로 조회합니다.
+
+        > 📱 **화면:** 11.2 사용자 차단 — 마이페이지 > 설정 > 차단 목록 화면 진입
 
         **쿼리 파라미터:**
         - `cursor` (선택): 이전 nextCursor

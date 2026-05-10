@@ -31,6 +31,8 @@ public class NoticeSupportController {
     @Operation(summary = "공지사항 목록 조회", description = """
         공지사항 목록을 조회합니다.
 
+        > 📱 **화면:** 14.2 앱 공지사항 / 이벤트 배너 — 공지 목록 화면 진입
+
         **정렬:** 고정(isPinned=true) 우선, 그 다음 최신순
         - Redis 1시간 캐싱 적용""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -47,7 +49,8 @@ public class NoticeSupportController {
 
     /** 15.2 공지사항 상세 조회 */
     @GetMapping("/api/notices/{noticeId}")
-    @Operation(summary = "공지사항 상세 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "공지사항 상세 조회", description = """
+        > 📱 **화면:** 14.2 앱 공지사항 — 공지 카드 탭 (상세 진입)""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -69,6 +72,8 @@ public class NoticeSupportController {
     @Operation(summary = "활성 배너 조회 (최대 5개)", description = """
         현재 활성화된 배너를 조회합니다. 최대 5개.
 
+        > 📱 **화면:** 14.2 앱 공지사항 / 이벤트 배너 — 홈 상단 활성 배너 노출
+
         **응답:** id, title, imageUrl, linkType(NONE/INTERNAL/EXTERNAL), linkUrl
         - Redis 1시간 캐싱""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -87,6 +92,8 @@ public class NoticeSupportController {
     @GetMapping("/api/notices/unread-count")
     @Operation(summary = "미읽음 공지사항 수 조회", description = """
         미읽음 공지 수를 반환합니다.
+
+        > 📱 **화면:** 14.2 앱 공지사항 — 탭바 공지 뱃지 (미읽음 수 표시)
 
         **동작:** lastReadNoticeId 기준으로 그 이후 공지 수 카운트""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -108,6 +115,8 @@ public class NoticeSupportController {
     @Operation(summary = "FAQ 목록 조회", description = """
         FAQ 목록을 조회합니다.
 
+        > 📱 **화면:** 14.3 FAQ 및 고객센터 — FAQ 목록 화면 진입
+
         **응답:** faqId, question, answer, category
         - Redis 1시간 캐싱""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -126,6 +135,8 @@ public class NoticeSupportController {
     @PostMapping("/api/support/inquiry")
     @Operation(summary = "1:1 문의 접수", description = """
         1:1 문의를 접수합니다.
+
+        > 📱 **화면:** 14.3 FAQ 및 고객센터 — [문의 접수] 버튼 탭
 
         **요청 필드:**
         - `category` (필수): 문의 카테고리 (예: "기능 문의", "버그 제보")
@@ -159,6 +170,8 @@ public class NoticeSupportController {
     @Operation(summary = "내 문의 목록 조회", description = """
         내 문의 목록을 조회합니다.
 
+        > 📱 **화면:** 14.3 FAQ 및 고객센터 — 내 문의 이력 탭 진입
+
         **응답:** inquiryId, category, title, status(PENDING/ANSWERED/CLOSED), createdAt""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -176,7 +189,8 @@ public class NoticeSupportController {
 
     /** 16.4 문의 상세 조회 */
     @GetMapping("/api/support/inquiries/{inquiryId}")
-    @Operation(summary = "문의 상세 조회", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "문의 상세 조회", description = """
+        > 📱 **화면:** 14.3 FAQ 및 고객센터 — 문의 목록에서 카드 탭 (상세 진입)""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

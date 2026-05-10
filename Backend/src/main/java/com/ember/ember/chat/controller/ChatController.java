@@ -28,7 +28,8 @@ public class ChatController {
 
     /** 6.1 채팅 시작 (교환일기 → 채팅방 생성) */
     @PostMapping("/api/exchange-rooms/{roomId}/chat")
-    @Operation(summary = "채팅방 생성 (교환일기 완료 후)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "채팅방 생성 (교환일기 완료 후)", description = """
+        > 📱 **화면:** 7.1 관계 확장 선택 — 양측 [채팅] 선택 → 채팅방 자동 생성""", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "생성 성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -51,6 +52,8 @@ public class ChatController {
     @Operation(summary = "채팅방 목록 조회", description = """
         채팅방 목록을 조회합니다.
 
+        > 📱 **화면:** 8.1 1:1 채팅방 진입 — 화면 진입 (채팅방 목록)
+
         **응답:** ACTIVE 상태 방 목록
         - partnerNickname, lastMessage, lastMessageAt, unreadCount 포함
         - N+1 최적화 적용 (JOIN FETCH + 배치 쿼리)""",
@@ -71,6 +74,8 @@ public class ChatController {
     @GetMapping("/api/chat-rooms/{roomId}/messages")
     @Operation(summary = "메시지 이력 조회 (커서 기반)", description = """
         채팅 메시지 이력을 커서 기반으로 조회합니다.
+
+        > 📱 **화면:** 8.2 실시간 메시지 발송 — 화면 진입 / 스크롤 업 (히스토리 조회)
 
         **쿼리 파라미터:**
         - `cursor` (선택): 이전 응답의 nextCursor
@@ -99,6 +104,8 @@ public class ChatController {
     @Operation(summary = "채팅 상대방 프로필 조회", description = """
         채팅 상대방의 프로필을 조회합니다.
 
+        > 📱 **화면:** 8.1 채팅방 진입 / 프로필 전체 공개 — 상단 프로필 아이콘 탭
+
         **응답:** nickname, gender, ageGroup, personalityTags(AI 분석 성격 태그 상위 3개)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -118,6 +125,8 @@ public class ChatController {
     @PostMapping("/api/chat-rooms/{roomId}/messages")
     @Operation(summary = "메시지 전송 (REST)", description = """
         채팅 메시지를 전송합니다 (REST 방식).
+
+        > 📱 **화면:** 8.2 실시간 메시지 발송 / 8.3 검열 기능 — 메시지 입력 후 [전송] 탭
 
         **요청 필드:**
         - `content` (필수): 메시지 본문
@@ -159,6 +168,8 @@ public class ChatController {
     @PostMapping("/api/chat-rooms/{roomId}/leave")
     @Operation(summary = "채팅방 나가기", description = """
         채팅방을 나갑니다.
+
+        > 📱 **화면:** 8.5 채팅방 나가기 — 프로필 바텀시트 > [나가기] 확인 다이얼로그 [확인]
 
         **동작:**
         - 시스템 메시지 생성 ("상대방이 채팅방을 나갔습니다")

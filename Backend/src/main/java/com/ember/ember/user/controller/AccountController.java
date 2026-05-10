@@ -32,6 +32,8 @@ public class AccountController {
     @Operation(summary = "회원 탈퇴 (소프트 딜리트, 30일 유예)", description = """
         회원 탈퇴를 요청합니다 (30일 유예 후 영구 삭제).
 
+        > 📱 **화면:** 11.3 회원 탈퇴 — 마이페이지 > 설정 > [탈퇴 확정] 버튼
+
         **요청 필드:**
         - `reason` (선택): 탈퇴 사유
         - `detail` (선택): 상세 설명, 최대 500자
@@ -63,6 +65,8 @@ public class AccountController {
     @Operation(summary = "탈퇴 유예 계정 복구", description = """
         탈퇴 유예 계정을 복구합니다 (마이페이지 경로).
 
+        > 📱 **화면:** 11.3 회원 탈퇴 — 유예 기간 내 재로그인 → [계정 복구] 버튼
+
         **동작:** DEACTIVATED → ACTIVE, 탈퇴 관련 필드 초기화
         - 30일 초과 시 복구 불가 (영구 삭제됨)""",
         security = @SecurityRequirement(name = "bearerAuth"))
@@ -83,6 +87,8 @@ public class AccountController {
     @GetMapping("/api/users/me/ai-profile")
     @Operation(summary = "AI 성격 분석 결과 조회", description = """
         AI 성격 분석 결과를 조회합니다.
+
+        > 📱 **화면:** 9.3 나의 누적 AI 성격 분석 결과 / 4.2 AI 성격 분석 비동기 처리 (마이페이지 > AI 분석 진입)
 
         **활성화 조건:** 일기 3편 이상 작성
         - 3편 미만이면 analysisAvailable=false
@@ -112,6 +118,8 @@ public class AccountController {
     @PostMapping("/api/users/me/appeals")
     @Operation(summary = "제재 이의신청", description = """
         제재에 대한 이의신청을 접수합니다.
+
+        > 📱 **화면:** 11.5 제재 이의신청 — [이의신청 제출] 버튼
 
         **요청 필드:**
         - `sanctionId` (필수): 제재 이력 ID
@@ -149,6 +157,8 @@ public class AccountController {
     @DeleteMapping("/api/consent")
     @Operation(summary = "AI 분석 동의 철회", description = """
         AI 분석 동의를 철회합니다.
+
+        > 📱 **화면:** 13.3 민감 데이터 처리 — 마이페이지 > 개인정보 > [동의 철회]
 
         **동작:**
         - AI_ANALYSIS, AI_DATA_USAGE 모두 REVOKED 이력 INSERT

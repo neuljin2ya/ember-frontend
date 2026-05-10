@@ -31,6 +31,8 @@ public class IdealTypeController {
     @Operation(summary = "이상형 키워드 목록 조회 (공개 API)", description = """
         이상형 키워드 마스터 목록을 조회합니다. 인증 불필요.
 
+        > 📱 **화면:** 3.2 이상형 성격 키워드 설정 — 화면 진입 시 (키워드 목록 로드)
+
         **응답:**
         - 10개 키워드, category별 그룹핑 (RELATIONSHIP, EMOTION, LIFESTYLE 등)
         - 온보딩 2단계에서 키워드 선택 UI에 사용
@@ -51,6 +53,8 @@ public class IdealTypeController {
     @PostMapping("/api/users/ideal-type/keywords")
     @Operation(summary = "이상형 키워드 설정 (최대 3개)", description = """
         온보딩 2단계 — 이상형 키워드를 설정합니다.
+
+        > 📱 **화면:** 3.2 이상형 성격 키워드 설정 — [시작하기] 버튼 탭 (최종 제출)
 
         **요청 필드:**
         - `keywordIds`: 키워드 ID 배열 (최소 1개, 최대 3개)

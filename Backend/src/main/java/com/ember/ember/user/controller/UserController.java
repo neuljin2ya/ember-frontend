@@ -29,6 +29,8 @@ public class UserController {
     @Operation(summary = "랜덤 닉네임 생성 (형용사+명사 조합)", description = """
         랜덤 닉네임을 생성합니다. 인증 불필요.
 
+        > 📱 **화면:** 3.1 기본 프로필 설정 — [다시 생성] 버튼 탭
+
         **동작:**
         - 형용사(20개) + 명사(20개) 조합으로 생성 (예: "따뜻한별빛", "용감한하늘")
         - 중복 검사 포함 — 기존 닉네임과 겹치지 않음
@@ -48,6 +50,8 @@ public class UserController {
     @PostMapping("/api/users/profile")
     @Operation(summary = "프로필 등록 (온보딩 1단계)", description = """
         온보딩 1단계 — 기본 프로필을 등록합니다.
+
+        > 📱 **화면:** 3.1 기본 프로필 설정 — [다음] 버튼 탭 (최종 제출)
 
         **요청 필드:**
         - `nickname` (필수): 2~10자, 한글/영문/숫자
@@ -90,6 +94,8 @@ public class UserController {
     @Operation(summary = "내 프로필 조회", description = """
         현재 로그인한 사용자의 전체 프로필을 조회합니다.
 
+        > 📱 **화면:** 9.1 내 프로필 조회 / 11.4 제재 알림 (로그인 시 제재 상태 감지)
+
         **응답 포함 정보:**
         - 기본 정보: userId, nickname, birthDate, gender, sido, sigungu, school
         - 온보딩 상태: onboardingCompleted, onboardingStep (0=미시작, 1=프로필완료, 2=키워드완료)
@@ -113,6 +119,8 @@ public class UserController {
     @PatchMapping("/api/users/me/profile")
     @Operation(summary = "프로필 부분 수정 (닉네임/지역/학교)", description = """
         프로필 정보를 수정합니다.
+
+        > 📱 **화면:** 9.1 내 프로필 조회 및 수정 — [프로필 수정] 저장 탭
 
         **수정 가능 필드:** nickname, realName, sido, sigungu, school
         - 닉네임 변경은 30일 쿨다운 적용 (lastNicknameChangedAt 기준)
@@ -141,6 +149,8 @@ public class UserController {
     @PostMapping("/api/users/me/fcm-token")
     @Operation(summary = "FCM 토큰 등록/갱신", description = """
         FCM 푸시 알림용 디바이스 토큰을 등록하거나 갱신합니다.
+
+        > 📱 **화면:** 1.2 앱 권한 요청 / 2.2 소셜 로그인 완료 후 — FCM 토큰 자동 등록
 
         **요청 필드:**
         - `fcmToken` (필수): Firebase에서 발급받은 디바이스 토큰
