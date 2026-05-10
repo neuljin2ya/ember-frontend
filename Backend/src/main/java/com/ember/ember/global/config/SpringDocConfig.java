@@ -78,10 +78,13 @@ public class SpringDocConfig {
                 ```
 
                 ## 3단계: 탐색 + 매칭 신청
+                탐색 방식은 2가지:
+                - **일기 탐색 (explore)**: 최신순 + 지역/연령/키워드 필터링
+                - **AI 추천 (recommendations)**: KoSimCSE 유사도 기반 자동 매칭 추천 (필터링 자동 적용)
                 ```
-                GET /api/diaries/explore → 상대방 일기 탐색 (이성 필터링, sort=latest/recommended)
+                GET /api/diaries/explore → 일기 탐색 (최신순, 지역/연령/키워드 필터)
                 GET /api/diaries/{diaryId}/detail → 탐색 일기 상세 (성격 키워드, 다른 일기)
-                GET /api/matching/recommendations → AI 추천 목록 (KoSimCSE 유사도)
+                GET /api/matching/recommendations → AI 추천 목록 (KoSimCSE 유사도, 이성/차단 자동 필터링)
                 GET /api/matching/recommendations/{diaryId}/preview → 블라인드 미리보기
                 GET /api/matching/lifestyle-report → 라이프스타일 리포트 (일기 5편 이상)
                   ↓

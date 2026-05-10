@@ -118,8 +118,7 @@ public class ExploreService {
                 ? diaries.get(diaries.size() - 1).getId()
                 : null;
 
-        // 추천순 요청이지만 AI 미연동 → 최신순 폴백
-        String actualSort = "recommended".equals(sort) ? "latest" : sort;
+        String actualSort = "latest";
 
         String guidanceMessage = items.isEmpty() ? "새로운 일기가 올라오면 알려드릴게요!" : null;
 
