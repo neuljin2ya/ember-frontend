@@ -37,7 +37,7 @@ public class MatchingController {
         **쿼리 파라미터:**
         - `cursor` (선택): 이전 응답의 nextCursor 값
         - `size` (기본 10): 한 번에 가져올 개수
-        - `sort` (기본 latest): `latest`(최신순) 또는 `recommended`(AI 추천순, 현재 최신순 폴백)
+        - `sort` (기본 latest): `latest`(최신순) — AI 추천은 별도 API `GET /api/matching/recommendations` 사용
         - `sido` (선택): 시/도 필터 (예: "서울특별시")
         - `sigungu` (선택): 시/군/구 필터
         - `ageGroup` (선택): 연령대 필터 (예: "20대")
