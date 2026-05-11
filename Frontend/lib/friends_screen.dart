@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'bottom_nav_bar.dart';
 import 'chat_screen.dart';
+import 'exchange_diary_write_screen.dart';
 import 'api_service.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   // GET /api/exchange-rooms
-  // 응답: { data: { rooms: [ { roomUuid, partnerNickname, status, turnCount, isMyTurn, deadlineAt } ] } }
+  // 응답: { data: { rooms: [ { roomId, roomUuid, partnerNickname, status, currentTurn, isMyTurn, lastDiaryAt, deadline } ] } }
   Future<void> _loadDiaries() async {
     try {
       final data = await ApiService.getExchangeRooms();
@@ -191,16 +192,25 @@ class _FriendsScreenState extends State<FriendsScreen> {
             const Divider(color: Color(0xFFE37474), thickness: 1),
         itemBuilder: (context, index) {
           final d = _diaries[index];
+          final roomId = d['roomId'] is int
+              ? d['roomId'] as int
+              : int.tryParse(d['roomId']?.toString() ?? '') ?? 0;
           return _DiaryRoomItem(
             partnerNickname: d['partnerNickname'] ?? '',
-            turnCount: d['turnCount'] ?? 0,
+            turnCount: d['currentTurn'] ?? 0,
             isMyTurn: d['isMyTurn'] ?? false,
-            deadlineAt: d['deadlineAt'],
+            deadlineAt: d['deadline'],
             onWrite: () {
-              // TODO: 교환일기 작성 화면으로 이동
-              // Navigator.push(context, MaterialPageRoute(
-              //   builder: (_) => WriteExchangeDiaryScreen(roomUuid: d['roomUuid']),
-              // ));
+              if (roomId == 0) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ExchangeDiaryWriteScreen(
+                    roomId: roomId,
+                    partnerNickname: d['partnerNickname'] ?? '',
+                  ),
+                ),
+              ).then((_) => _loadDiaries());
             },
             onEnd: () => _showEndDialog(d['roomUuid']),
           );
@@ -356,8 +366,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
         itemBuilder: (context, index) {
           final req = _requests[index];
           return _RequestItem(
-            nickname: req['senderNickname'] ?? req['partnerNickname'] ?? '',
-            diaryTitle: req['diaryTitle'] ?? req['title'] ?? '',
+            nickname: req['fromUserNickname'] ?? '',
+            diaryTitle: req['diaryPreview'] ?? '',
             onAccept: () => _acceptRequest(req['matchingId'] ?? req['id']),
             onReject: () => _rejectRequest(req['matchingId'] ?? req['id']),
           );
