@@ -79,7 +79,7 @@ public class ExchangeController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"diaryId":1,"content":"오늘은...","turnNumber":1,"readAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"diaryId":1,"content":"오늘은...","authorId":5,"reaction":"HEART","readAt":"2026-04-30T10:00:00"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "교환일기 없음",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -101,7 +101,7 @@ public class ExchangeController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "작성 성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"201","message":"CREATED","data":{"diaryId":5,"turnNumber":3}}
+                {"code":"201","message":"CREATED","data":{"diaryId":5,"nextTurn":3,"isCompleted":false,"chatUnlocked":false}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "턴 순서 오류",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -150,7 +150,7 @@ public class ExchangeController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"reportId":1,"commonTopics":["여행","음식"],"compatibilityScore":0.78,"generatedAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"reportId":1,"status":"COMPLETED","commonKeywords":["여행","음식"],"emotionSimilarity":0.78,"lifestylePatterns":["아침형","운동 습관"],"writingTempA":"따뜻한","writingTempB":"차분한","aiDescription":"두 분은 여행과 음식에 대한 공통 관심사가 있습니다.","generatedAt":"2026-04-30T10:00:00"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "202", description = "분석 중",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -171,7 +171,7 @@ public class ExchangeController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"myChoice":"CHAT","bothChosen":true,"result":"CHAT_CREATED"}}
+                {"code":"200","message":"OK","data":{"status":"CHAT_CREATED","roundNumber":1,"chatRoomUuid":"bf48bc80-4773-4d50-a293-3ba5f7cea823","newExpiresAt":null}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 선택 완료",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -193,7 +193,7 @@ public class ExchangeController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"myChoice":"CHAT","partnerChosen":false}}
+                {"code":"200","message":"OK","data":{"myChoice":"CHAT","partnerChose":false,"roundNumber":1,"status":"WAITING","chatRoomUuid":null}}
                 """)))
     })
     public ResponseEntity<ApiResponse<NextStepStatusResponse>> getNextStepStatus(

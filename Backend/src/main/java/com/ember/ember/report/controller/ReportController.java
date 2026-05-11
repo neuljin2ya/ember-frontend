@@ -142,12 +142,12 @@ public class ReportController {
         - `cursor` (선택): 이전 nextCursor
         - `size` (기본 20)
 
-        **응답:** blockId, blockedUserId, blockedNickname, blockedAt""",
+        **응답:** blockId, userId, nickname, blockedAt""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"blocks":[{"blockId":1,"blockedUserId":5,"blockedNickname":"차단된유저","blockedAt":"2026-04-30T10:00:00"}],"nextCursor":null,"hasMore":false}}
+                {"code":"200","message":"OK","data":{"blocks":[{"blockId":1,"userId":5,"nickname":"차단된유저","blockedAt":"2026-04-30T10:00:00"}],"nextCursor":null,"hasMore":false}}
                 """)))
     })
     public ResponseEntity<ApiResponse<BlockListResponse>> getBlockList(

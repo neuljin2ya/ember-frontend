@@ -71,7 +71,7 @@ public class UserController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"201","message":"CREATED","data":{"userId":1,"nickname":"따뜻한별빛","onboardingStep":1}}
+                {"code":"201","message":"CREATED","data":{"userId":1,"nickname":"따뜻한별빛"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "닉네임 중복",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -131,7 +131,7 @@ public class UserController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"userId":1,"nickname":"새닉네임"}}
+                {"code":"200","message":"OK","data":null}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "닉네임 변경 쿨다운",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

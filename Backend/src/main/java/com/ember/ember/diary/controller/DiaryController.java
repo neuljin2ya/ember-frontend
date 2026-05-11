@@ -111,12 +111,12 @@ public class DiaryController {
         - `page` (기본 0): 페이지 번호
         - `size` (기본 10): 페이지 크기
 
-        **응답:** 최신순 정렬, 각 일기의 analysisStatus(PENDING/COMPLETED/FAILED) 포함""",
+        **응답:** 최신순 정렬, 각 일기의 contentPreview(미리보기), summary, category 포함""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"content":[{"diaryId":1,"content":"오늘은...","date":"2026-04-30","analysisStatus":"COMPLETED"}],"totalPages":1,"totalElements":1}}
+                {"code":"200","message":"OK","data":{"diaries":[{"diaryId":1,"contentPreview":"오늘은...","createdAt":"2026-04-30","summary":"일상 기록","category":"DAILY"}],"totalCount":1,"hasNext":false}}
                 """)))
     })
     public ResponseEntity<ApiResponse<DiaryListResponse>> getDiaries(
@@ -135,17 +135,20 @@ public class DiaryController {
         > 📱 **화면:** 4.4 나의 일기 히스토리 — 일기 카드 탭 (상세 진입)
 
         **응답 포함:**
-        - 일기 본문, 날짜, visibility
-        - AI 분석 키워드 (analysisStatus=COMPLETED인 경우)
-          - tagType: EMOTION(감정), RELATIONSHIP_STYLE(관계성향), LIFESTYLE(생활), TONE(톤)
-          - label: 분석 결과 태그 (예: "편안함", "안정 추구")
+        - 일기 본문(content), 작성일(createdAt), 요약(summary), 카테고리(category)
+        - AI 분석 태그 (analysisStatus=COMPLETED인 경우)
+          - emotionTags: 감정 태그 (예: "편안함")
+          - lifestyleTags: 라이프스타일 태그 (예: "미식")
+          - toneTags: 글쓰기 톤 태그 (예: "솔직한")
+          - 각 태그는 label(이름) + score(확신도) 구조
+        - isEditable: 당일 일기인지 (수정 가능 여부)
 
         **에러:** D004(존재하지 않음), D005(본인 일기 아님)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"diaryId":1,"content":"오늘은...","date":"2026-04-30","keywords":[{"tagType":"EMOTION","label":"편안함"}]}}
+                {"code":"200","message":"OK","data":{"diaryId":1,"content":"오늘은...","createdAt":"2026-04-30","summary":"일상 기록","category":"DAILY","emotionTags":[{"label":"편안함","score":0.85}],"lifestyleTags":[{"label":"미식","score":0.72}],"toneTags":[{"label":"솔직한","score":0.90}],"isEditable":true}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "일기 없음 (D004)",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -179,7 +182,7 @@ public class DiaryController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"diaryId":1,"updatedAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"diaryId":1,"content":"수정된 일기 본문...","updatedAt":"2026-04-30T10:00:00","summary":"수정된 요약"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "당일 일기만 수정 가능 (D005)",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

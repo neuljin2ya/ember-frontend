@@ -87,7 +87,7 @@ public class ChatController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"messages":[{"messageId":1,"senderId":5,"content":"안녕하세요!","type":"TEXT","createdAt":"2026-04-30T10:00:00","isRead":true,"isFlagged":false,"sequenceId":1}],"nextCursor":null,"hasMore":false}}
+                {"code":"200","message":"OK","data":{"messages":[{"messageId":1,"senderId":5,"content":"안녕하세요!","type":"TEXT","createdAt":"2026-04-30T10:00:00","isRead":true,"isFlagged":false,"sequenceId":1}],"hasMore":false}}
                 """)))
     })
     public ResponseEntity<ApiResponse<ChatMessageListResponse>> getMessages(
@@ -106,12 +106,12 @@ public class ChatController {
 
         > 📱 **화면:** 8.1 채팅방 진입 / 프로필 전체 공개 — 상단 프로필 아이콘 탭
 
-        **응답:** nickname, gender, ageGroup, personalityTags(AI 분석 성격 태그 상위 3개)""",
+        **응답:** nickname, gender, birthDate, sido, personalityTags(AI 분석 성격 태그 상위 3개)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"userId":2,"nickname":"미소짓는풍선","gender":"FEMALE","ageGroup":"20대","personalityTags":["안정 추구","공감 우선"]}}
+                {"code":"200","message":"OK","data":{"userId":2,"nickname":"미소짓는풍선","birthDate":"2000-05-15","gender":"FEMALE","sido":"서울특별시","personalityTags":["안정 추구","공감 우선"]}}
                 """)))
     })
     public ResponseEntity<ApiResponse<ChatPartnerProfileResponse>> getPartnerProfile(
@@ -145,7 +145,7 @@ public class ChatController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"messageId":5,"sequenceId":5,"sentAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"messageId":5,"senderId":3,"content":"안녕하세요!","type":"TEXT","createdAt":"2026-04-30T10:00:00","isRead":false,"isFlagged":false,"sequenceId":5}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "금칙어 포함",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

@@ -47,7 +47,7 @@ public class AuthController {
         responses = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "성공",
                 content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                    {"code":"201","message":"CREATED","data":{"accessToken":"eyJ...","refreshToken":"eyJ...","userId":1,"isNewUser":true,"role":"ROLE_GUEST"}}
+                    {"code":"201","message":"CREATED","data":{"accessToken":"eyJ...","refreshToken":"eyJ...","isNewUser":true,"userId":1,"onboardingCompleted":false,"onboardingStep":0,"accountStatus":"ACTIVE","restoreToken":null}}
                     """))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "소셜 인증 실패",
                 content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -142,7 +142,7 @@ public class AuthController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"userId":1,"restoredAt":"2026-04-30T10:00:00","status":"ACTIVE"}}
+                {"code":"200","message":"OK","data":{"accessToken":"eyJ...","refreshToken":"eyJ...","userId":1}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "복구 불가",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

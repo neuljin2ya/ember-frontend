@@ -134,7 +134,7 @@ public class AccountController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"appealId":1,"status":"PENDING","createdAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"appealId":1,"status":"PENDING","submittedAt":"2026-04-30T10:00:00"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 이의신청 존재",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

@@ -39,7 +39,7 @@ public class NoticeSupportController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":[{"noticeId":1,"title":"서비스 업데이트","category":"SERVICE","isPinned":true,"createdAt":"2026-04-30T10:00:00"}]}
+                {"code":"200","message":"OK","data":[{"id":1,"title":"서비스 업데이트","category":"SERVICE","priority":"HIGH","isPinned":true,"publishedAt":"2026-04-30T10:00:00"}]}
                 """)))
     })
     public ResponseEntity<ApiResponse<List<NoticeResponse>>> getNotices() {
@@ -54,7 +54,7 @@ public class NoticeSupportController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"noticeId":1,"title":"서비스 업데이트","content":"업데이트 내용...","category":"SERVICE","createdAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"id":1,"title":"서비스 업데이트","content":"업데이트 내용...","category":"SERVICE","priority":"HIGH","isPinned":true,"publishedAt":"2026-04-30T10:00:00","viewCount":42}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "공지 없음",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -117,13 +117,13 @@ public class NoticeSupportController {
 
         > 📱 **화면:** 14.3 FAQ 및 고객센터 — FAQ 목록 화면 진입
 
-        **응답:** faqId, question, answer, category
+        **응답:** id, category, question, answer
         - Redis 1시간 캐싱""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":[{"faqId":1,"question":"교환일기는 어떻게 시작하나요?","answer":"일기를 작성하고...","category":"SERVICE"}]}
+                {"code":"200","message":"OK","data":[{"id":1,"category":"SERVICE","question":"교환일기는 어떻게 시작하나요?","answer":"일기를 작성하고..."}]}
                 """)))
     })
     public ResponseEntity<ApiResponse<List<FaqResponse>>> getFaqs() {

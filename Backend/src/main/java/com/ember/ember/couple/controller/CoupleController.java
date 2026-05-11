@@ -44,7 +44,7 @@ public class CoupleController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"coupleRequestId":1,"expiresAt":"2026-05-03T10:00:00"}}
+                {"code":"200","message":"OK","data":{"requestId":1,"expiresAt":"2026-05-03T10:00:00","reminderSchedule":["2026-05-04T10:00:00","2026-05-05T10:00:00"]}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "중복 요청",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -75,7 +75,7 @@ public class CoupleController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"coupleId":1,"confirmedAt":"2026-04-30T10:00:00"}}
+                {"code":"200","message":"OK","data":{"coupleId":1,"status":"ACTIVE"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "요청 없음",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """

@@ -51,12 +51,12 @@ public class MatchingController {
         - 이미 매칭 신청/넘긴 일기 제외
         - 교환일기 3건 만석 유저 제외
 
-        **응답 카드:** nickname, ageGroup, sido, sigungu, content(앞 200자), personalityKeywords(상위3), moodTags""",
+        **응답 카드:** ageGroupLabel, sido, sigungu, previewContent(앞 200자), personalityKeywords(상위3), moodTags""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"diaries":[{"diaryId":10,"nickname":"미소짓는풍선","ageGroup":"20대","sido":"서울특별시","sigungu":"강남구","content":"오늘은...","personalityKeywords":["안정 추구","공감 우선"]}],"nextCursor":9,"hasMore":true}}
+                {"code":"200","message":"OK","data":{"diaries":[{"diaryId":10,"authorId":5,"ageGroupLabel":"20대","sido":"서울특별시","sigungu":"강남구","previewContent":"오늘은...","category":"일상","createdAt":"2026-05-01T08:00:00","similarityBadge":"잘 맞을 것 같아요","personalityKeywords":["안정 추구","공감 우선"],"moodTags":["편안한"]}],"nextCursor":9,"hasNext":true,"guidanceMessage":null,"currentSort":"latest"}}
                 """)))
     })
     public ResponseEntity<ApiResponse<ExploreResponse>> explore(
@@ -87,7 +87,7 @@ public class MatchingController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"diaryId":10,"content":"오늘은...","personalityKeywords":["안정 추구"],"otherDiaries":[{"diaryId":11,"preview":"어제는..."}]}}
+                {"code":"200","message":"OK","data":{"diaryId":10,"authorId":5,"ageGroupLabel":"20대","content":"오늘은 날씨가 좋아서 산책을 나갔다...","summary":"산책과 일상","keywords":["안정 추구","공감 우선"],"moodTags":["편안한"],"category":"일상","createdAt":"2026-05-01T08:00:00","similarityBadge":"잘 맞을 것 같아요","otherDiariesPreview":[{"diaryId":11,"summary":"어제는 카페에서...","createdAt":"2026-04-30T10:00:00"}]}}
                 """)))
     })
     public ResponseEntity<ApiResponse<DiaryDetailExploreResponse>> diaryDetail(
@@ -114,7 +114,7 @@ public class MatchingController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":[{"diaryId":10,"nickname":"미소짓는풍선","preview":"오늘은...","similarityScore":0.85}]}
+                {"code":"200","message":"OK","data":{"generatedAt":"2026-05-01T08:00:00","source":"FRESH","items":[{"userId":5,"matchingScore":0.85,"breakdown":{"keywordOverlap":0.67,"cosineSimilarity":0.92},"summary":null}]}}
                 """)))
     })
     public ResponseEntity<ApiResponse<RecommendationResponse>> getRecommendations(
@@ -144,7 +144,7 @@ public class MatchingController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"diaryId":10,"preview":"오늘은 정말 좋은...","similarityBadge":"잘 맞을 것 같아요"}}
+                {"code":"200","message":"OK","data":{"diaryId":10,"ageGroup":"20대","preview":"오늘은 정말 좋은...","keywords":["안정 추구"],"tags":["편안한"],"aiIntro":null,"category":"일상","matchScore":0.85,"similarityBadge":"잘 맞을 것 같아요"}}
                 """)))
     })
     public ResponseEntity<ApiResponse<DiaryPreviewResponse>> preview(
@@ -186,13 +186,13 @@ public class MatchingController {
 
         > 📱 **화면:** 5.5 받은 매칭 요청 확인 — 탐색 화면 AppBar ✉️ 아이콘 탭
 
-        **응답:** 요청자 닉네임, 연령대, 일기 미리보기 포함
+        **응답:** fromUserNickname, fromUserAgeGroup, diaryPreview 포함
         - matchingId를 POST /api/matching/requests/{matchingId}/accept에 전달""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":[{"matchingId":1,"nickname":"미소짓는풍선","ageGroup":"20대","preview":"오늘은..."}]}
+                {"code":"200","message":"OK","data":[{"matchingId":1,"fromUserId":5,"fromUserNickname":"미소짓는풍선","fromUserAgeGroup":"20대","diaryId":10,"diaryPreview":"오늘은...","requestedAt":"2026-05-01T08:00:00"}]}
                 """)))
     })
     public ResponseEntity<ApiResponse<java.util.List<MatchingRequestItem>>> getReceivedRequests(
@@ -218,7 +218,7 @@ public class MatchingController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수락 성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"roomUuid":"bf48bc80-4773-4d50-a293-3ba5f7cea823"}}
+                {"code":"200","message":"OK","data":{"matchingId":1,"isMatched":true,"roomUuid":"bf48bc80-4773-4d50-a293-3ba5f7cea823"}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "매칭 없음 (M006)",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
@@ -250,7 +250,7 @@ public class MatchingController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "신청 성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"matchingId":1,"status":"PENDING"}}
+                {"code":"200","message":"OK","data":{"matchingId":1,"isMatched":false,"roomUuid":null}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 신청한 일기 (M001)",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
