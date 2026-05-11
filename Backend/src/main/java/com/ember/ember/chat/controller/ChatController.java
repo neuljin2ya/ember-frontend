@@ -87,7 +87,7 @@ public class ChatController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"messages":[{"messageId":1,"content":"안녕하세요!","senderNickname":"열정적인눈꽃","type":"TEXT","sentAt":"2026-04-30T10:00:00","sequenceId":1}],"nextCursor":null,"hasMore":false}}
+                {"code":"200","message":"OK","data":{"messages":[{"messageId":1,"senderId":5,"content":"안녕하세요!","type":"TEXT","createdAt":"2026-04-30T10:00:00","isRead":true,"isFlagged":false,"sequenceId":1}],"nextCursor":null,"hasMore":false}}
                 """)))
     })
     public ResponseEntity<ApiResponse<ChatMessageListResponse>> getMessages(

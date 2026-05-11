@@ -35,13 +35,14 @@ public class ExchangeController {
         > 📱 **화면:** 6.1 교환 일기 매칭 성사 및 방 생성 — 화면 진입 (교환 방 목록 탭)
 
         **응답:** ACTIVE 상태 방만 반환
-        - roomUuid, partnerNickname, status, turnCount, isMyTurn, deadlineAt
-        - isMyTurn=true이면 내가 작성할 차례""",
+        - roomId, roomUuid, partnerNickname, status, currentTurn, isMyTurn, lastDiaryAt, deadline
+        - isMyTurn=true이면 내가 작성할 차례
+        - ⚠️ 하위 API 호출 시 roomId(숫자)를 사용하세요 (roomUuid 아님)""",
         security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"rooms":[{"roomUuid":"bf48bc80-...","partnerNickname":"미소짓는풍선","status":"ACTIVE","turnCount":2,"isMyTurn":true,"deadlineAt":"2026-05-01T10:00:00"}]}}
+                {"code":"200","message":"OK","data":{"rooms":[{"roomId":1,"roomUuid":"bf48bc80-...","partnerNickname":"미소짓는풍선","status":"ACTIVE","currentTurn":2,"isMyTurn":true,"lastDiaryAt":"2026-05-01T08:00:00","deadline":"2026-05-03T08:00:00"}]}}
                 """)))
     })
     public ResponseEntity<ApiResponse<ExchangeRoomListResponse>> getRooms(
@@ -57,7 +58,7 @@ public class ExchangeController {
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                {"code":"200","message":"OK","data":{"roomUuid":"bf48bc80-...","status":"ACTIVE","turnCount":2,"totalTurns":4,"isMyTurn":true,"deadlineAt":"2026-05-01T10:00:00","diaries":[{"diaryId":1,"content":"오늘은...","turnNumber":1,"authorNickname":"열정적인눈꽃"}]}}
+                {"code":"200","message":"OK","data":{"roomId":1,"partner":{"userId":5,"nickname":"미소짓는풍선"},"status":"ACTIVE","currentTurn":2,"isMyTurn":true,"diaries":[{"diaryId":1,"authorId":5,"content":"오늘은...","reaction":null,"readAt":null,"createdAt":"2026-05-01T08:00:00","turnNumber":1}],"deadline":"2026-05-03T08:00:00","roundNumber":1,"nextStepRequired":false,"nextStepDeadline":null}}
                 """))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "교환방 없음",
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
