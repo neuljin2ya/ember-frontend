@@ -26,6 +26,33 @@ target/
 build/
 bin/
 
+# Flutter (자동 생성물 / 로컬 캐시 / 디버그용 Chrome 프로필 포함)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
+**/GeneratedPluginRegistrant.m
+**/GeneratedPluginRegistrant.h
+
+# AI 모델 가중치 (외부 저장소에서 별도 다운로드)
+*.pt
+*.bin
+*.safetensors
+*.onnx
+*.ckpt
+*.h5
+*.pkl
+*.pth
+ai/diary_model/
+ai/**/checkpoints/
+ai/**/weights/
+
 # Firebase (민감 정보)
 firebase-service-account.json
 google-services.json
@@ -37,6 +64,9 @@ google-services.json
 # Claude Code
 .claude/
 .mcp.json
+
+# Serena MCP (로컬 프로젝트 메타데이터)
+.serena/
 
 # Nginx SSL 인증서
 nginx/certs/
