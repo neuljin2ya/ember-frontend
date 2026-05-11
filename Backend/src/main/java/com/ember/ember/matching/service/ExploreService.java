@@ -256,6 +256,17 @@ public class ExploreService {
         // 라이프스타일 태그
         List<String> lifestyleTags = findLifestyleTags(diaryIds);
 
+        // 감정 표현 점수 (EMOTION 태그 평균 score)
+        Double emotionScore = diaryKeywordRepository.findByDiaryIdIn(diaryIds).stream()
+                .filter(dk -> dk.getTagType() == DiaryKeyword.TagType.EMOTION)
+                .mapToDouble(dk -> dk.getScore().doubleValue())
+                .average()
+                .orElse(0.0);
+        emotionScore = Math.round(emotionScore * 100.0) / 100.0;
+
+        // AI 라이프스타일 설명 문구 생성
+        String aiDescription = buildAiDescription(commonKeywords, lifestyleTags, emotionScore);
+
         return LifestyleReportResponse.builder()
                 .analysisAvailable(true)
                 .requiredDiaryCount(requiredCount)
@@ -265,10 +276,10 @@ public class ExploreService {
                         .weekday((int) weekdayCount)
                         .weekend((int) weekendCount)
                         .build())
-                .emotionGraph(null)
+                .emotionGraph(emotionScore)
                 .avgDiaryLength(avgLength)
                 .commonKeywords(commonKeywords)
-                .aiDescription(null)
+                .aiDescription(aiDescription)
                 .lifestyleTags(lifestyleTags)
                 .guidanceMessage(null)
                 .build();
@@ -556,6 +567,35 @@ public class ExploreService {
                 .limit(5)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
+    }
+
+    private String buildAiDescription(List<String> commonKeywords, List<String> lifestyleTags, Double emotionScore) {
+        StringBuilder sb = new StringBuilder();
+
+        if (!lifestyleTags.isEmpty()) {
+            sb.append(String.join(", ", lifestyleTags.subList(0, Math.min(3, lifestyleTags.size()))));
+            sb.append(" 성향이 돋보이는 사람이에요. ");
+        }
+
+        if (emotionScore >= 0.8) {
+            sb.append("감정 표현이 풍부하고 ");
+        } else if (emotionScore >= 0.5) {
+            sb.append("감정을 적절히 표현하며 ");
+        } else {
+            sb.append("차분하게 감정을 다루며 ");
+        }
+
+        if (!commonKeywords.isEmpty()) {
+            sb.append("'").append(commonKeywords.get(0)).append("'");
+            if (commonKeywords.size() > 1) {
+                sb.append(", '").append(commonKeywords.get(1)).append("'");
+            }
+            sb.append(" 키워드가 자주 등장해요.");
+        } else {
+            sb.append("일상을 꾸준히 기록하는 습관을 가지고 있어요.");
+        }
+
+        return sb.toString();
     }
 
     private List<String> findLifestyleTags(List<Long> diaryIds) {
