@@ -41,15 +41,34 @@ for (const [p, methods] of Object.entries(raw.paths || {})) {
 }
 raw.paths = paths;
 
-// ── 1-1. Admin DTO 스키마 제거 ──
+// ── 1-1. 사용자 API에서 참조하는 스키마만 남기고 나머지 전부 제거 ──
 if (raw.components && raw.components.schemas) {
-  const adminSchemaKeys = new Set(
-    Object.keys(raw.components.schemas).filter(k => k.includes('Admin'))
-  );
-  for (const key of adminSchemaKeys) {
-    delete raw.components.schemas[key];
+  const usedSchemas = new Set();
+  function findRefs(obj) {
+    if (!obj) return;
+    if (typeof obj === 'object') {
+      if (obj['$ref']) usedSchemas.add(obj['$ref'].replace('#/components/schemas/', ''));
+      for (const v of Object.values(obj)) findRefs(v);
+    }
   }
-  console.log(`Admin 스키마 ${adminSchemaKeys.size}개 제거`);
+  findRefs(raw.paths);
+  // $ref 체인 따라가기 (스키마가 다른 스키마 참조할 수 있음)
+  let prevSize = 0;
+  while (usedSchemas.size !== prevSize) {
+    prevSize = usedSchemas.size;
+    for (const name of [...usedSchemas]) {
+      if (raw.components.schemas[name]) findRefs(raw.components.schemas[name]);
+    }
+  }
+  const allKeys = Object.keys(raw.components.schemas);
+  let removed = 0;
+  for (const key of allKeys) {
+    if (!usedSchemas.has(key)) {
+      delete raw.components.schemas[key];
+      removed++;
+    }
+  }
+  console.log(`미사용 스키마 ${removed}개 제거 (${usedSchemas.size}개 유지)`);
 }
 
 const apiCount = Object.values(paths).reduce((sum, m) => sum + Object.keys(m).length, 0);
