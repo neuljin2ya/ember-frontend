@@ -52,9 +52,9 @@ public class ReportPriorityCalculator {
     static {
         Map<Report.ReportReason, Integer> m = new EnumMap<>(Report.ReportReason.class);
         m.put(Report.ReportReason.PERSONAL_INFO, 80); // 개인정보 유출/요구 — 법적 리스크 최대
-        m.put(Report.ReportReason.SEXUAL,        75); // 성적 콘텐츠/성희롱
+        m.put(Report.ReportReason.OBSCENE,        75); // 성적 콘텐츠/성희롱
         m.put(Report.ReportReason.HARASSMENT,    70); // 괴롭힘/협박
-        m.put(Report.ReportReason.IMPERSONATION, 60); // 사칭/허위 프로필
+        m.put(Report.ReportReason.FAKE_PROFILE,  60); // 사칭/허위 프로필
         m.put(Report.ReportReason.PROFANITY,     50); // 욕설/비속어
         m.put(Report.ReportReason.SPAM,          40); // 스팸/도배
         m.put(Report.ReportReason.OTHER,         30); // 기타

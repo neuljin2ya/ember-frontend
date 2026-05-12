@@ -78,8 +78,7 @@ public class Report extends BaseEntity {
     private LocalDateTime resolvedAt;
 
     public enum ReportReason {
-        // ERD v2.1 §2.28 기준 7종. 기존 OBSCENE/FAKE_PROFILE 은 SEXUAL/IMPERSONATION 으로 통일.
-        PROFANITY, SEXUAL, PERSONAL_INFO, SPAM, IMPERSONATION, HARASSMENT, OTHER
+        PROFANITY, OBSCENE, PERSONAL_INFO, SPAM, FAKE_PROFILE, HARASSMENT, OTHER
     }
 
     public enum ReportStatus {
