@@ -77,15 +77,17 @@ export default function DiaryEmotionPage() {
     EMOTION_COLORS[key.toUpperCase()] ?? FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
 
   // adapter: BE points → AreaChart 데이터 (date + 각 감정 키)
+  // 백엔드는 각 포인트가 (bucketDate, emotion, freq) 형태이므로 같은 날짜를 그룹핑
   const areaData = useMemo(() => {
     if (!data) return [];
-    return (data.points ?? []).map((p) => {
-      const flat: Record<string, number | string> = { date: p.date };
-      (data.topEmotions ?? []).forEach((emo) => {
-        flat[emo] = p.counts[emo] ?? 0;
-      });
-      return flat;
+    const byDate = new Map<string, Record<string, number | string>>();
+    (data.points ?? []).forEach((p) => {
+      const dateKey = p.bucketDate;
+      if (!byDate.has(dateKey)) byDate.set(dateKey, { date: dateKey });
+      const row = byDate.get(dateKey)!;
+      row[p.emotion] = p.freq;
     });
+    return Array.from(byDate.values());
   }, [data]);
 
   // adapter: PieChart — 전체 기간 감정 합산
@@ -93,9 +95,7 @@ export default function DiaryEmotionPage() {
     if (!data) return [];
     const totals: Record<string, number> = {};
     (data.points ?? []).forEach((p) => {
-      Object.entries(p.counts).forEach(([k, v]) => {
-        totals[k] = (totals[k] ?? 0) + v;
-      });
+      totals[p.emotion] = (totals[p.emotion] ?? 0) + p.freq;
     });
     const sum = Object.values(totals).reduce((s, v) => s + v, 0);
     return Object.entries(totals).map(([key, value]) => ({

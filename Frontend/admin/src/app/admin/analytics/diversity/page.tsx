@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,19 +12,7 @@ import {
   Scale,
   RefreshCw,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  BarChart,
-  Bar,
-  Cell,
-} from 'recharts';
+// recharts 차트 미사용 (백엔드에 daily 시계열 없음)
 import { useMatchingDiversity } from '@/hooks/useAnalytics';
 import {
   AnalyticsLoading,
@@ -33,14 +21,7 @@ import {
   DegradedBadge,
 } from '@/components/common/AnalyticsStatus';
 import { periodToDateRange, type AnalyticsPeriod } from '@/lib/utils/analyticsRange';
-import type { MatchingDiversityResponse, DiversityDailyPoint } from '@/types/analytics';
-
-const TOOLTIP_STYLE = {
-  backgroundColor: 'hsl(var(--card))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: 8,
-  fontSize: 11,
-};
+import type { MatchingDiversityResponse } from '@/types/analytics';
 
 export default function DiversityAnalyticsPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>('30d');
@@ -49,16 +30,8 @@ export default function DiversityAnalyticsPage() {
   const query = useMatchingDiversity({ startDate, endDate });
   const data: MatchingDiversityResponse | undefined = query.data;
 
-  // adapter: BE daily → 차트 데이터
-  const trendData = useMemo(() => {
-    if (!data) return [];
-    return (data.daily ?? []).map((d: DiversityDailyPoint) => ({
-      date: d.date,
-      entropy: d.shannonEntropy ?? 0,
-      uniquePairs: d.uniquePairs,
-      totalRecs: d.totalRecommendations,
-    }));
-  }, [data]);
+  // 백엔드 응답에 daily 시계열 없음 — 단일 집계값만 존재
+  const hasData = !!data;
 
   return (
     <div>
@@ -107,130 +80,61 @@ export default function DiversityAnalyticsPage() {
         <>
           <div className="mb-6 grid gap-4 md:grid-cols-4">
             <KpiCard
-              title="평균 Shannon 엔트로피"
-              value={(data.avgShannonEntropy ?? 0).toFixed(2)}
-              description="기간 평균 매칭 다양성 점수"
+              title="Shannon 엔트로피"
+              value={(data.shannonEntropy ?? 0).toFixed(2)}
+              description="매칭 다양성 점수"
               icon={Sparkles}
               valueClassName="text-primary"
             />
             <KpiCard
               title="재추천율"
               value={`${((data.rerecommendationRate ?? 0) * 100).toFixed(1)}%`}
-              description={`최근 ${data.rerecommendationWindowDays}일 윈도우 내 동일 페어 재추천`}
+              description={`재추천 ${(data.rerecommendationCount ?? 0).toLocaleString()}건`}
               icon={Layers}
             />
             <KpiCard
               title="총 추천 수"
-              value={trendData.reduce((s, d) => s + d.totalRecs, 0).toLocaleString()}
-              description="기간 누적 추천 횟수"
+              value={(data.totalRecs ?? 0).toLocaleString()}
+              description="기간 내 총 추천 횟수"
               icon={Activity}
               valueClassName="text-[#10b981]"
             />
             <KpiCard
-              title="고유 매칭 페어"
-              value={trendData.reduce((s, d) => s + d.uniquePairs, 0).toLocaleString()}
-              description="고유 (사용자, 후보) 조합 합계"
+              title="고유 후보 수"
+              value={(data.uniqueCandidates ?? 0).toLocaleString()}
+              description="고유 추천 후보 사용자 수"
               icon={Scale}
             />
           </div>
 
-          {trendData.length === 0 ? (
-            <AnalyticsEmpty height={300} title="다양성 지표 데이터가 없습니다" />
-          ) : (
-            <>
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-sm">매칭 다양성 추이 (Shannon Entropy)</CardTitle>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    일별 추천 결과 분포의 엔트로피. 값이 높을수록 추천이 다양함.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={trendData} margin={{ top: 4, right: 8, left: -16, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 10 }}
-                        stroke="hsl(var(--muted-foreground))"
-                        interval={Math.max(1, Math.floor(trendData.length / 8))}
-                      />
-                      <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip
-                        formatter={(v: number) => [v.toFixed(3), 'Shannon H']}
-                        contentStyle={TOOLTIP_STYLE}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Line
-                        type="monotone"
-                        dataKey="entropy"
-                        name="Shannon 엔트로피"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <div className="mb-6 grid gap-6 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">일별 고유 페어 수</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={trendData} margin={{ top: 4, right: 16, left: -16, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 9 }}
-                          stroke="hsl(var(--muted-foreground))"
-                          interval={Math.max(1, Math.floor(trendData.length / 8))}
-                        />
-                        <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" />
-                        <Tooltip
-                          formatter={(v: number) => [v.toLocaleString(), '고유 페어']}
-                          contentStyle={TOOLTIP_STYLE}
-                        />
-                        <Bar dataKey="uniquePairs" fill="#3b82f6" fillOpacity={0.85} radius={[4, 4, 0, 0]}>
-                          {trendData.map((_, idx) => (
-                            <Cell key={`p-${idx}`} fill="#3b82f6" />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">일별 총 추천 수</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={260}>
-                      <BarChart data={trendData} margin={{ top: 4, right: 16, left: -16, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 9 }}
-                          stroke="hsl(var(--muted-foreground))"
-                          interval={Math.max(1, Math.floor(trendData.length / 8))}
-                        />
-                        <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" />
-                        <Tooltip
-                          formatter={(v: number) => [v.toLocaleString(), '총 추천']}
-                          contentStyle={TOOLTIP_STYLE}
-                        />
-                        <Bar dataKey="totalRecs" fill="#10b981" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-sm">다양성 지표 요약</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Shannon 엔트로피가 높을수록 추천이 다양함. 재추천율이 낮을수록 새로운 후보를 추천.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="rounded-md border border-border p-4 text-center">
+                  <p className="text-xs text-muted-foreground">총 추천</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">{(data.totalRecs ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="rounded-md border border-border p-4 text-center">
+                  <p className="text-xs text-muted-foreground">고유 후보</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">{(data.uniqueCandidates ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="rounded-md border border-border p-4 text-center">
+                  <p className="text-xs text-muted-foreground">Shannon H</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">{(data.shannonEntropy ?? 0).toFixed(3)}</p>
+                </div>
+                <div className="rounded-md border border-border p-4 text-center">
+                  <p className="text-xs text-muted-foreground">재추천 건수</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">{(data.rerecommendationCount ?? 0).toLocaleString()}</p>
+                </div>
               </div>
-            </>
-          )}
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

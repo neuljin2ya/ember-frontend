@@ -58,25 +58,17 @@ export default function DiaryResponsePage() {
   const turnBarData = useMemo(() => {
     if (!data) return [];
     return (data.turnRows ?? []).map((r) => ({
-      turn: `${r.turn}턴`,
-      responded: r.responded,
-      timedOut: r.timedOut,
+      turn: `${r.fromTurn}→${r.toTurn}턴`,
+      samples: r.samples,
       rate: r.rate ?? 0,
-      p50: r.delay.p50Hours ?? 0,
-      p90: r.delay.p90Hours ?? 0,
+      p50: r.p50Hours ?? 0,
     }));
   }, [data]);
 
-  const totalResponded = useMemo(
-    () => (data ? (data.turnRows ?? []).reduce((s, r) => s + r.responded, 0) : 0),
+  const totalSamples = useMemo(
+    () => (data ? (data.turnRows ?? []).reduce((s, r) => s + r.samples, 0) : 0),
     [data],
   );
-  const totalTimedOut = useMemo(
-    () => (data ? (data.turnRows ?? []).reduce((s, r) => s + r.timedOut, 0) : 0),
-    [data],
-  );
-  const totalAttempts = totalResponded + totalTimedOut;
-  const expireRate = totalAttempts > 0 ? (totalTimedOut / totalAttempts) * 100 : 0;
 
   return (
     <div>
@@ -126,8 +118,8 @@ export default function DiaryResponsePage() {
           <div className="mb-6 grid gap-4 md:grid-cols-4">
             <KpiCard
               title="평균 응답 시간 (P50)"
-              value={`${(data.overallDelay?.p50Hours ?? 0).toFixed(1)}시간`}
-              description={`P90 ${(data.overallDelay?.p90Hours ?? 0).toFixed(1)}h · P99 ${(data.overallDelay?.p99Hours ?? 0).toFixed(1)}h`}
+              value={`${(data.responseDelay?.p50Hours ?? 0).toFixed(1)}시간`}
+              description={`P90 ${(data.responseDelay?.p90Hours ?? 0).toFixed(1)}h · P99 ${(data.responseDelay?.p99Hours ?? 0).toFixed(1)}h`}
               icon={Clock}
             />
             <KpiCard
@@ -138,15 +130,15 @@ export default function DiaryResponsePage() {
               valueClassName="text-emerald-500"
             />
             <KpiCard
-              title="만료율"
-              value={`${expireRate.toFixed(1)}%`}
-              description={`만료 ${totalTimedOut.toLocaleString()} / 총 ${totalAttempts.toLocaleString()}`}
+              title="총 샘플 수"
+              value={totalSamples.toLocaleString()}
+              description="전체 턴 전환 샘플"
               icon={AlertCircle}
-              valueClassName="text-destructive"
+              valueClassName="text-primary"
             />
             <KpiCard
               title="P99 응답 시간"
-              value={`${(data.overallDelay?.p99Hours ?? 0).toFixed(1)}시간`}
+              value={`${(data.responseDelay?.p99Hours ?? 0).toFixed(1)}시간`}
               description="가장 늦은 1% 응답 기준"
               icon={Timer}
               valueClassName="text-primary"
@@ -159,9 +151,9 @@ export default function DiaryResponsePage() {
             <>
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle className="text-sm">턴별 응답 vs 만료 (Stacked)</CardTitle>
+                  <CardTitle className="text-sm">턴 전환별 샘플 수</CardTitle>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    각 턴에서 시간 내 응답한 건수와 만료된 건수
+                    각 턴 전환 구간의 샘플 수
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -175,15 +167,10 @@ export default function DiaryResponsePage() {
                         tickFormatter={(v: number) => v.toLocaleString()}
                       />
                       <Tooltip
-                        formatter={(v: number, name: string) => [v.toLocaleString() + '건', name === 'responded' ? '응답' : '만료']}
+                        formatter={(v: number) => [v.toLocaleString() + '건', '샘플 수']}
                         contentStyle={TOOLTIP_STYLE}
                       />
-                      <Legend
-                        wrapperStyle={{ fontSize: 11 }}
-                        formatter={(value: string) => (value === 'responded' ? '응답' : '만료')}
-                      />
-                      <Bar dataKey="responded" name="responded" stackId="a" fill="#10b981" fillOpacity={0.85} radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="timedOut" name="timedOut" stackId="a" fill="#ef4444" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="samples" name="샘플 수" fill="#10b981" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -222,7 +209,7 @@ export default function DiaryResponsePage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm">턴별 응답 지연 P50/P90</CardTitle>
+                    <CardTitle className="text-sm">턴별 응답 지연 P50</CardTitle>
                     <p className="mt-0.5 text-xs text-muted-foreground">시간 단위 (h)</p>
                   </CardHeader>
                   <CardContent>
@@ -232,15 +219,10 @@ export default function DiaryResponsePage() {
                         <XAxis dataKey="turn" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                         <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v: number) => `${v}h`} />
                         <Tooltip
-                          formatter={(v: number, name: string) => [`${v.toFixed(1)}h`, name === 'p50' ? 'P50 (중앙값)' : 'P90']}
+                          formatter={(v: number) => [`${v.toFixed(1)}h`, 'P50 (중앙값)']}
                           contentStyle={TOOLTIP_STYLE}
                         />
-                        <Legend
-                          wrapperStyle={{ fontSize: 11 }}
-                          formatter={(value: string) => (value === 'p50' ? 'P50 (중앙값)' : 'P90')}
-                        />
-                        <Bar dataKey="p50" name="p50" fill="#3b82f6" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="p90" name="p90" fill="#8b5cf6" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="p50" name="P50 (중앙값)" fill="#3b82f6" fillOpacity={0.85} radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>

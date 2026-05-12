@@ -68,18 +68,20 @@ export default function TurnFunnelPage() {
 
   const conversionData = useMemo(() => {
     return stages.map((s) => ({
-      stage: STAGE_LABELS[s.stage],
-      stageKey: s.stage,
+      stage: STAGE_LABELS[s.name as ExchangeFunnelStageKey] ?? s.name,
+      stageKey: s.name,
       count: s.count,
       rate: ((s.rate ?? 0) * 100),
+      stepRate: ((s.stepRate ?? 0) * 100),
+      cumulative: ((s.cumulative ?? 0) * 100),
       dropoff: ((s.dropoffRate ?? 0) * 100),
     }));
   }, [stages]);
 
   const roomCount = stages[0]?.count ?? 0;
-  const chatCount = stages.find((s) => s.stage === 'CHAT_CONNECTED')?.count ?? 0;
-  const overallRate = roomCount > 0 ? (chatCount / roomCount) * 100 : 0;
-  const turn1Rate = stages.find((s) => s.stage === 'TURN_1_COMPLETE')?.rate ?? 0;
+  const chatCount = stages.find((s) => s.name === 'CHAT_CONNECTED')?.count ?? 0;
+  const overallRate = data?.overallChatRate != null ? data.overallChatRate * 100 : (roomCount > 0 ? (chatCount / roomCount) * 100 : 0);
+  const turn1Rate = stages.find((s) => s.name === 'TURN_1_COMPLETE')?.rate ?? 0;
 
   return (
     <div>
@@ -170,10 +172,10 @@ export default function TurnFunnelPage() {
                 <CardContent>
                   <div className="flex items-center justify-center gap-2 overflow-x-auto py-4">
                     {stages.map((stage, index) => {
-                      const color = STAGE_COLORS[stage.stage];
-                      const label = STAGE_LABELS[stage.stage];
+                      const color = STAGE_COLORS[stage.name as ExchangeFunnelStageKey] ?? '#6b7280';
+                      const label = STAGE_LABELS[stage.name as ExchangeFunnelStageKey] ?? stage.name;
                       return (
-                        <div key={stage.stage} className="flex items-center">
+                        <div key={stage.name} className="flex items-center">
                           <div
                             className="flex min-w-[110px] flex-col items-center rounded-lg p-4 shadow-sm"
                             style={{ backgroundColor: color + '33', border: `1.5px solid ${color}55` }}
@@ -243,7 +245,7 @@ export default function TurnFunnelPage() {
                         />
                         <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
                           {conversionData.map((entry) => (
-                            <Cell key={entry.stageKey} fill={STAGE_COLORS[entry.stageKey]} />
+                            <Cell key={entry.stageKey} fill={STAGE_COLORS[entry.stageKey as ExchangeFunnelStageKey] ?? '#6b7280'} />
                           ))}
                         </Bar>
                       </BarChart>

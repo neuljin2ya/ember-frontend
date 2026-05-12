@@ -54,7 +54,7 @@ export default function MatchingAnalyticsPage() {
   // 주간 트렌드 (daily 데이터 활용)
   const weeklyTrend = daily.slice(-7).map((d: any) => ({
     day: d.date?.substring(5) ?? d.date,
-    matches: d.recommendations ?? 0,
+    matches: d.recs ?? 0,
     success: d.accepts ?? 0,
   }));
 
@@ -184,7 +184,7 @@ export default function MatchingAnalyticsPage() {
                 <BarChart data={topKeywords.slice(0, 8)} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" stroke="#6b7280" fontSize={12} />
-                  <YAxis dataKey="label" type="category" stroke="#6b7280" fontSize={11} width={80} />
+                  <YAxis dataKey="keyword" type="category" stroke="#6b7280" fontSize={11} width={80} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#fff',
@@ -193,7 +193,7 @@ export default function MatchingAnalyticsPage() {
                     }}
                     formatter={(value: number) => [`${value.toLocaleString()}회`, '매칭 수']}
                   />
-                  <Bar dataKey="count" fill="#ec4899" radius={[0, 4, 4, 0]} name="매칭 수" />
+                  <Bar dataKey="freq" fill="#ec4899" radius={[0, 4, 4, 0]} name="매칭 수" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

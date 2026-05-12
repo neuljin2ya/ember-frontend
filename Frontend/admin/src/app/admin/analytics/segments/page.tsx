@@ -65,11 +65,13 @@ export default function SegmentAnalysisPage() {
   // adapter: BE rows → 차트 데이터
   const chartRows = useMemo(() => {
     if (!data) return [];
+    const totalUsers = (data.rows ?? []).reduce((s, r) => s + (r.users ?? 0), 0);
     return (data.rows ?? []).map((r, idx) => ({
       label: describeRow(r),
-      value: r.value ?? 0,
-      share: ((r.share ?? 0) * 100),
+      value: r.users ?? 0,
+      share: totalUsers > 0 ? ((r.users ?? 0) / totalUsers) * 100 : 0,
       masked: r.masked,
+      reason: r.reason ?? '',
       color: PALETTE[idx % PALETTE.length],
     }));
   }, [data]);
@@ -82,8 +84,8 @@ export default function SegmentAnalysisPage() {
       const age = r.ageGroup ?? '미상';
       if (!byAge.has(age)) byAge.set(age, { age, M: 0, F: 0 });
       const entry = byAge.get(age)!;
-      if (r.gender === 'M') entry.M += r.value ?? 0;
-      else if (r.gender === 'F') entry.F += r.value ?? 0;
+      if (r.gender === 'M') entry.M += r.users ?? 0;
+      else if (r.gender === 'F') entry.F += r.users ?? 0;
     });
     return Array.from(byAge.values()).sort((a, b) => a.age.localeCompare(b.age));
   }, [data]);
