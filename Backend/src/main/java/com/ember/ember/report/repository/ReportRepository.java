@@ -58,38 +58,38 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     @Query(value = """
             SELECT r.* FROM reports r
             LEFT JOIN admin_accounts assigned ON assigned.id = r.assigned_to
-            WHERE (CAST(:status AS varchar) = '' OR r.status = CAST(:status AS varchar))
-              AND (CAST(:reason AS varchar) = '' OR r.reason = CAST(:reason AS varchar))
-              AND (CAST(:minPriority AS integer) IS NULL OR r.priority_score >= CAST(:minPriority AS integer))
+            WHERE (:status = '' OR r.status = :status)
+              AND (:reason = '' OR r.reason = :reason)
+              AND (:minPriority = -1 OR r.priority_score >= :minPriority)
               AND (
                     :assigneeFilter = 'ANY'
                  OR (:assigneeFilter = 'UNASSIGNED' AND r.assigned_to IS NULL)
-                 OR (:assigneeFilter = 'ME' AND r.assigned_to = CAST(:assigneeId AS bigint))
-                 OR (:assigneeFilter = 'SPECIFIC' AND r.assigned_to = CAST(:assigneeId AS bigint))
+                 OR (:assigneeFilter = 'ME' AND r.assigned_to = :assigneeId)
+                 OR (:assigneeFilter = 'SPECIFIC' AND r.assigned_to = :assigneeId)
               )
-              AND (CAST(:slaOverdue AS boolean) = FALSE OR (r.sla_deadline IS NOT NULL AND r.sla_deadline < CAST(:now AS timestamp)))
+              AND (:slaOverdue = FALSE OR (r.sla_deadline IS NOT NULL AND r.sla_deadline < :now))
             ORDER BY r.priority_score DESC NULLS LAST, r.sla_deadline ASC NULLS LAST, r.id DESC
             """,
             countQuery = """
             SELECT COUNT(*) FROM reports r
-            WHERE (CAST(:status AS varchar) = '' OR r.status = CAST(:status AS varchar))
-              AND (CAST(:reason AS varchar) = '' OR r.reason = CAST(:reason AS varchar))
-              AND (CAST(:minPriority AS integer) IS NULL OR r.priority_score >= CAST(:minPriority AS integer))
+            WHERE (:status = '' OR r.status = :status)
+              AND (:reason = '' OR r.reason = :reason)
+              AND (:minPriority = -1 OR r.priority_score >= :minPriority)
               AND (
                     :assigneeFilter = 'ANY'
                  OR (:assigneeFilter = 'UNASSIGNED' AND r.assigned_to IS NULL)
-                 OR (:assigneeFilter = 'ME' AND r.assigned_to = CAST(:assigneeId AS bigint))
-                 OR (:assigneeFilter = 'SPECIFIC' AND r.assigned_to = CAST(:assigneeId AS bigint))
+                 OR (:assigneeFilter = 'ME' AND r.assigned_to = :assigneeId)
+                 OR (:assigneeFilter = 'SPECIFIC' AND r.assigned_to = :assigneeId)
               )
-              AND (CAST(:slaOverdue AS boolean) = FALSE OR (r.sla_deadline IS NOT NULL AND r.sla_deadline < CAST(:now AS timestamp)))
+              AND (:slaOverdue = FALSE OR (r.sla_deadline IS NOT NULL AND r.sla_deadline < :now))
             """,
             nativeQuery = true)
     Page<Report> searchReports(
             @Param("status") String status,
             @Param("reason") String reason,
-            @Param("minPriority") Integer minPriority,
+            @Param("minPriority") int minPriority,
             @Param("assigneeFilter") String assigneeFilter,
-            @Param("assigneeId") Long assigneeId,
+            @Param("assigneeId") long assigneeId,
             @Param("slaOverdue") boolean slaOverdue,
             @Param("now") LocalDateTime now,
             Pageable pageable

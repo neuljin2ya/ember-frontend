@@ -91,9 +91,13 @@ public class AdminReportService {
         String statusStr = status != null ? status.name() : "";
         String reasonStr = reason != null ? reason.name() : "";
 
+        // null → 기본값 변환: native query CAST bytea 오류 방지
+        int safeMinPriority = minPriority != null ? minPriority : -1;
+        long safeAssigneeId = assigneeId != null ? assigneeId : -1L;
+
         LocalDateTime now = LocalDateTime.now();
         Page<Report> page = reportRepository.searchReports(
-                statusStr, reasonStr, minPriority, filter, assigneeId, slaOverdue, now, pageable);
+                statusStr, reasonStr, safeMinPriority, filter, safeAssigneeId, slaOverdue, now, pageable);
 
         return page.map(r -> AdminReportListItemResponse.from(
                 r, priorityCalculator.evaluateSlaStatus(r, now)));
