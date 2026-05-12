@@ -76,25 +76,28 @@ export default function DiaryEmotionPage() {
   const colorFor = (key: string, idx: number) =>
     EMOTION_COLORS[key.toUpperCase()] ?? FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
 
-  // adapter: BE points → AreaChart 데이터 (date + 각 감정 키)
+  // adapter: BE trends/points → AreaChart 데이터 (date + 각 감정 키)
   // 백엔드는 각 포인트가 (bucketDate, emotion, freq) 형태이므로 같은 날짜를 그룹핑
+  // BE 필드명: trends (실제) / points (레거시 호환)
+  const rawPoints = useMemo(() => data?.trends ?? data?.points ?? [], [data]);
+
   const areaData = useMemo(() => {
-    if (!data) return [];
+    if (!rawPoints.length) return [];
     const byDate = new Map<string, Record<string, number | string>>();
-    (data.points ?? []).forEach((p) => {
-      const dateKey = p.bucketDate;
+    rawPoints.forEach((p) => {
+      const dateKey = String(p.bucketDate);
       if (!byDate.has(dateKey)) byDate.set(dateKey, { date: dateKey });
       const row = byDate.get(dateKey)!;
       row[p.emotion] = p.freq;
     });
     return Array.from(byDate.values());
-  }, [data]);
+  }, [rawPoints]);
 
   // adapter: PieChart — 전체 기간 감정 합산
   const pieData = useMemo(() => {
-    if (!data) return [];
+    if (!rawPoints.length) return [];
     const totals: Record<string, number> = {};
-    (data.points ?? []).forEach((p) => {
+    rawPoints.forEach((p) => {
       totals[p.emotion] = (totals[p.emotion] ?? 0) + p.freq;
     });
     const sum = Object.values(totals).reduce((s, v) => s + v, 0);
@@ -104,7 +107,21 @@ export default function DiaryEmotionPage() {
       share: sum > 0 ? (value / sum) * 100 : 0,
       key,
     }));
-  }, [data]);
+  }, [rawPoints]);
+
+  // topEmotions 가 없으면 rawPoints 에서 추출
+  const topEmotions = useMemo(() => {
+    if (data?.topEmotions?.length) return data.topEmotions;
+    // rawPoints 에서 빈도 합산 상위 6개 추출
+    const totals: Record<string, number> = {};
+    rawPoints.forEach((p) => {
+      totals[p.emotion] = (totals[p.emotion] ?? 0) + p.freq;
+    });
+    return Object.entries(totals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([key]) => key);
+  }, [data, rawPoints]);
 
   // KPI 계산
   const dominantEmotion = useMemo(() => {
@@ -244,7 +261,7 @@ export default function DiaryEmotionPage() {
                         formatter={(v: number, name: string) => [`${(v * 100).toFixed(1)}%`, name]}
                         contentStyle={TOOLTIP_STYLE}
                       />
-                      {(data.topEmotions ?? []).map((key, idx) => (
+                      {topEmotions.map((key, idx) => (
                         <Area
                           key={key}
                           type="monotone"
@@ -260,7 +277,7 @@ export default function DiaryEmotionPage() {
                   </ResponsiveContainer>
 
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    {(data.topEmotions ?? []).map((key, idx) => (
+                    {topEmotions.map((key, idx) => (
                       <div key={key} className="flex items-center gap-1.5">
                         <span className="inline-block h-3 w-6 rounded" style={{ backgroundColor: colorFor(key, idx) }} />
                         <span>{key}</span>

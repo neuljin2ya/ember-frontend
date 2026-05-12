@@ -22,6 +22,7 @@ import {
   Cell,
 } from 'recharts';
 import { useMatchingFunnel, useMatchingDiversity, useKeywordTop } from '@/hooks/useAnalytics';
+import type { MatchingDiversityResponse } from '@/types/analytics';
 
 export default function MatchingAnalyticsPage() {
   const { data: funnelData, isLoading: funnelLoading, refetch: refetchFunnel } = useMatchingFunnel();
@@ -218,9 +219,24 @@ export default function MatchingAnalyticsPage() {
               {diversityData && (
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">다양성 지표</p>
-                  <p className="text-lg font-bold mt-1">
-                    {typeof diversityData === 'object' ? JSON.stringify(diversityData).substring(0, 50) : '—'}
-                  </p>
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Shannon 엔트로피: </span>
+                      <span className="font-bold">{diversityData.shannonEntropy != null ? diversityData.shannonEntropy.toFixed(2) : '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">고유 후보: </span>
+                      <span className="font-bold">{diversityData.uniqueCandidates?.toLocaleString() ?? '—'}명</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">총 추천: </span>
+                      <span className="font-bold">{diversityData.totalRecs?.toLocaleString() ?? '—'}건</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">재추천율: </span>
+                      <span className="font-bold">{diversityData.rerecommendationRate != null ? `${(diversityData.rerecommendationRate * 100).toFixed(1)}%` : '—'}</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

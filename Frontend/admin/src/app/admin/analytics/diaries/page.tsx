@@ -65,15 +65,23 @@ export default function DiariesAnalyticsPage() {
   const quality = data?.qualityStats ?? data?.quality;
   const lengthStats = data?.lengthStats ?? data?.stats;
 
-  const totalDiaries = quality?.total ?? '-';
-  const avgChars = lengthStats?.mean != null
-    ? `${Math.round(lengthStats.mean)}자`
+  // BE QualityStats 에 total 이 없으면 completed+failed+skipped+pending 으로 계산
+  const totalDiaries = quality?.total
+    ?? (quality ? (quality.completed ?? 0) + (quality.failed ?? 0) + (quality.skipped ?? 0) + (quality.pending ?? 0) : null)
+    ?? lengthStats?.totalDiaries
+    ?? '-';
+  // BE LengthStats 필드명: meanChars (실제) / mean (레거시 호환)
+  const meanVal = lengthStats?.mean ?? lengthStats?.meanChars ?? null;
+  const avgChars = meanVal != null
+    ? `${Math.round(meanVal)}자`
     : quality?.avgCharactersPerDiary != null
       ? `${Math.round(quality.avgCharactersPerDiary)}자`
       : '-';
   const successRate = quality?.successRate != null
-    ? quality.successRate.toFixed(1)
-    : '-';
+    ? (quality.successRate * 100).toFixed(1)
+    : quality?.completionRate != null
+      ? (quality.completionRate * 100).toFixed(1)
+      : '-';
 
   return (
     <div>
