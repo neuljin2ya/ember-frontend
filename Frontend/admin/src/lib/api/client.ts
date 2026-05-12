@@ -94,7 +94,7 @@ apiClient.interceptors.response.use(
         const { code, message } = error.response.data || {};
         const displayMessage = ERROR_MESSAGES[code] || message || '알 수 없는 오류가 발생했습니다.';
 
-        if (error.response.status !== 401) {
+        if (error.response.status !== 401 && error.response.status !== 429) {
           toast.error(displayMessage);
         }
       } else {
