@@ -175,6 +175,9 @@ const navItems: NavItem[] = [
       { title: 'PII 접근 로그', href: '/admin/system/pii-logs', requiredRole: 'SUPER_ADMIN' },
       { title: '기능 플래그', href: '/admin/system/feature-flags' },
       { title: '배치 스케줄', href: '/admin/system/batch' },
+      { title: '자동 제재 규칙', href: '/admin/system/auto-sanction-rules' },
+      { title: '자동 알림 규칙', href: '/admin/system/auto-notification-rules' },
+      { title: '자동 리포트', href: '/admin/system/auto-reports' },
     ],
   },
   {
