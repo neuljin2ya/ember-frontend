@@ -54,20 +54,23 @@ export default function DiaryResponsePage() {
   const query = useExchangeResponseRate({ startDate, endDate, windowHours: 48 });
   const data: ExchangeResponseRateResponse | undefined = query.data;
 
-  // adapter: BE turnRows → 차트 데이터
+  // adapter: BE byTurn/turnRows → 차트 데이터
+  // 백엔드 실제 필드명: byTurn (DTO), 프론트 레거시: turnRows
+  const rawTurnRows = useMemo(() => data?.byTurn ?? data?.turnRows ?? [], [data]);
+
   const turnBarData = useMemo(() => {
-    if (!data) return [];
-    return (data.turnRows ?? []).map((r) => ({
+    if (!rawTurnRows.length) return [];
+    return rawTurnRows.map((r) => ({
       turn: `${r.fromTurn}→${r.toTurn}턴`,
       samples: r.samples,
       rate: r.rate ?? 0,
       p50: r.p50Hours ?? 0,
     }));
-  }, [data]);
+  }, [rawTurnRows]);
 
   const totalSamples = useMemo(
-    () => (data ? (data.turnRows ?? []).reduce((s, r) => s + r.samples, 0) : 0),
-    [data],
+    () => rawTurnRows.reduce((s, r) => s + r.samples, 0),
+    [rawTurnRows],
   );
 
   return (
@@ -118,8 +121,8 @@ export default function DiaryResponsePage() {
           <div className="mb-6 grid gap-4 md:grid-cols-4">
             <KpiCard
               title="평균 응답 시간 (P50)"
-              value={`${(data.responseDelay?.p50Hours ?? 0).toFixed(1)}시간`}
-              description={`P90 ${(data.responseDelay?.p90Hours ?? 0).toFixed(1)}h · P99 ${(data.responseDelay?.p99Hours ?? 0).toFixed(1)}h`}
+              value={`${(data.responseDelay?.p50Hours ?? data.responseDelay?.p50H ?? 0).toFixed(1)}시간`}
+              description={`P90 ${(data.responseDelay?.p90Hours ?? data.responseDelay?.p90H ?? 0).toFixed(1)}h · P99 ${(data.responseDelay?.p99Hours ?? data.responseDelay?.p99H ?? 0).toFixed(1)}h`}
               icon={Clock}
             />
             <KpiCard
@@ -138,7 +141,7 @@ export default function DiaryResponsePage() {
             />
             <KpiCard
               title="P99 응답 시간"
-              value={`${(data.responseDelay?.p99Hours ?? 0).toFixed(1)}시간`}
+              value={`${(data.responseDelay?.p99Hours ?? data.responseDelay?.p99H ?? 0).toFixed(1)}시간`}
               description="가장 늦은 1% 응답 기준"
               icon={Timer}
               valueClassName="text-primary"

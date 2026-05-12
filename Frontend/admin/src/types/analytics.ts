@@ -252,20 +252,33 @@ export interface LengthStats {
   min: number | null;
   max: number | null;
   mean: number | null;
+  // 백엔드 실제 필드명 (BE DTO: meanChars, p50Chars, ...)
+  totalDiaries?: number;
+  meanChars?: number | null;
+  p50Chars?: number | null;
+  p90Chars?: number | null;
+  p99Chars?: number | null;
+  minChars?: number | null;
+  maxChars?: number | null;
 }
 
 export interface LengthBucket {
   range: string;   // "100-199" / "200-399" / ...
+  bucket?: string; // 백엔드 실제 필드명
   count: number;
   share: number | null;
 }
 
 export interface QualityStats {
-  total: number;
+  total?: number;
   completed: number;
   failed: number;
-  successRate: number | null;
-  avgCharactersPerDiary: number | null;
+  skipped?: number;
+  pending?: number;
+  successRate?: number | null;
+  completionRate?: number | null;
+  avgLatencyMs?: number | null;
+  avgCharactersPerDiary?: number | null;
 }
 
 export interface DiaryLengthQualityResponse {
@@ -294,7 +307,8 @@ export interface DiaryEmotionTrendResponse {
   period: AnalyticsPeriod;
   bucket: 'day' | 'week';
   topEmotions: string[]; // 상위 topN 감정 (차트 축 고정용)
-  points: EmotionTrendPoint[];
+  points?: EmotionTrendPoint[];
+  trends?: EmotionTrendPoint[];  // 백엔드 실제 필드명
   meta: AnalyticsBaseMeta;
 }
 
@@ -323,9 +337,14 @@ export interface DiaryTopicParticipationResponse {
 // ---------------------------------------------------------------------------
 
 export interface ResponseDelayStats {
-  p50Hours: number | null;
-  p90Hours: number | null;
-  p99Hours: number | null;
+  p50Hours?: number | null;
+  p90Hours?: number | null;
+  p99Hours?: number | null;
+  // 백엔드 실제 필드명 변형 (일부 응답에서 축약형)
+  p50H?: number | null;
+  p90H?: number | null;
+  p99H?: number | null;
+  meanHours?: number | null;
 }
 
 export interface TurnResponseRow {
@@ -339,8 +358,12 @@ export interface TurnResponseRow {
 export interface ExchangeResponseRateResponse {
   period: AnalyticsPeriod;
   windowHours: number;
+  roomsStarted?: number;
+  roomsResponded?: number;
   firstResponseRate: number | null; // 턴1 제출 후 window 내 턴2
-  turnRows: TurnResponseRow[];
+  turnRows?: TurnResponseRow[];
+  byTurn?: TurnResponseRow[];     // 백엔드 실제 필드명
+  timeoutCount?: number;
   responseDelay: ResponseDelayStats;
   meta: AnalyticsBaseMeta;
 }

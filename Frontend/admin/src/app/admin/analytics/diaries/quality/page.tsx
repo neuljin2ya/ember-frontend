@@ -66,30 +66,57 @@ export default function DiaryQualityPage() {
   const query = useDiaryLengthQuality({ startDate, endDate });
   const data: DiaryLengthQualityResponse | undefined = query.data;
 
+  // adapter: BE LengthStats 필드명 정규화 (meanChars→mean, p50Chars→p50, ...)
+  const normalizedStats = useMemo(() => {
+    const raw = data?.lengthStats ?? data?.stats;
+    if (!raw) return null;
+    return {
+      mean: raw.mean ?? raw.meanChars ?? null,
+      p50: raw.p50 ?? raw.p50Chars ?? null,
+      p90: raw.p90 ?? raw.p90Chars ?? null,
+      p99: raw.p99 ?? raw.p99Chars ?? null,
+      min: raw.min ?? raw.minChars ?? null,
+      max: raw.max ?? raw.maxChars ?? null,
+      totalDiaries: raw.totalDiaries ?? null,
+    };
+  }, [data]);
+
+  // adapter: BE histogram bucket 필드명 → range 로 정규화
+  const buckets = useMemo(() => {
+    const raw = data?.histogram ?? data?.buckets ?? [];
+    return raw.map((b) => ({
+      ...b,
+      range: b.range ?? b.bucket ?? '',
+    }));
+  }, [data]);
+
   // adapter: 100자 미만 비율 계산
   const aboveMinRatio = useMemo(() => {
-    if (!data) return 0;
-    const bk = data.histogram ?? data.buckets ?? [];
-    const totalCount = bk.reduce((s, b) => s + b.count, 0);
+    if (!buckets.length) return 0;
+    const totalCount = buckets.reduce((s, b) => s + b.count, 0);
     if (totalCount === 0) return 0;
-    const belowCount = bk.filter((b) => isBelowMin(b.range)).reduce((s, b) => s + b.count, 0);
+    const belowCount = buckets.filter((b) => isBelowMin(b.range)).reduce((s, b) => s + b.count, 0);
     return Math.round(((totalCount - belowCount) / totalCount) * 100);
-  }, [data]);
+  }, [buckets]);
 
   // 첫 100자 이상 구간을 ReferenceLine 위치로 사용
   const firstAboveMinRange = useMemo(() => {
-    if (!data) return null;
-    const bk = data.histogram ?? data.buckets ?? [];
-    return bk.find((b) => !isBelowMin(b.range))?.range ?? null;
-  }, [data]);
+    if (!buckets.length) return null;
+    return buckets.find((b) => !isBelowMin(b.range))?.range ?? null;
+  }, [buckets]);
 
-  const stats = data?.lengthStats ?? data?.stats;
+  const stats = normalizedStats;
   const quality = data?.qualityStats ?? data?.quality;
-  const buckets = data?.histogram ?? data?.buckets ?? [];
 
+  // BE QualityStats 에는 total 이 없을 수 있으므로 completed+failed+skipped+pending 으로 계산
+  const qualityTotal = quality?.total ?? ((quality?.completed ?? 0) + (quality?.failed ?? 0) + (quality?.skipped ?? 0) + (quality?.pending ?? 0));
   const avgLength = stats?.mean != null ? Math.round(stats.mean) : 0;
   const avgQuality = quality?.avgCharactersPerDiary ?? 0;
-  const successRate = quality?.successRate != null ? Math.round(quality.successRate * 100) : 0;
+  const successRate = quality?.successRate != null
+    ? Math.round(quality.successRate * 100)
+    : quality?.completionRate != null
+      ? Math.round(quality.completionRate * 100)
+      : 0;
 
   return (
     <div>
@@ -291,7 +318,7 @@ export default function DiaryQualityPage() {
                         <TableRow>
                           <TableCell className="pl-4">총 분석 시도</TableCell>
                           <TableCell className="text-right pr-4 tabular-nums">
-                            {(quality?.total ?? 0).toLocaleString()}
+                            {qualityTotal.toLocaleString()}
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -340,23 +367,29 @@ export default function DiaryQualityPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {buckets.map((b: LengthBucket) => (
-                          <TableRow key={b.range}>
-                            <TableCell className="pl-4 font-medium">
-                              <span
-                                className="inline-flex h-6 w-3 rounded-full"
-                                style={{ backgroundColor: isBelowMin(b.range) ? '#f59e0b' : '#3b82f6' }}
-                              />
-                              <span className="ml-2">{b.range}</span>
-                            </TableCell>
-                            <TableCell className="text-right font-mono tabular-nums text-sm">
-                              {(b.count ?? 0).toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-right pr-4 tabular-nums text-xs">
-                              {((b.share ?? 0) * 100).toFixed(1)}%
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {(() => {
+                          const totalCount = buckets.reduce((s, b) => s + b.count, 0);
+                          return buckets.map((b) => {
+                            const share = b.share ?? (totalCount > 0 ? b.count / totalCount : 0);
+                            return (
+                              <TableRow key={b.range}>
+                                <TableCell className="pl-4 font-medium">
+                                  <span
+                                    className="inline-flex h-6 w-3 rounded-full"
+                                    style={{ backgroundColor: isBelowMin(b.range) ? '#f59e0b' : '#3b82f6' }}
+                                  />
+                                  <span className="ml-2">{b.range}</span>
+                                </TableCell>
+                                <TableCell className="text-right font-mono tabular-nums text-sm">
+                                  {(b.count ?? 0).toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right pr-4 tabular-nums text-xs">
+                                  {(share * 100).toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+                            );
+                          });
+                        })()}
                       </TableBody>
                     </Table>
                   </div>
