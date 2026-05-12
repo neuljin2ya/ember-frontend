@@ -61,6 +61,6 @@ export interface DailyStats {
 export interface MatchingStats {
   totalMatches: number;
   successRate: number;
-  averageMatchTime: number;
+  averageMatchTimeHours: number;
   topKeywords: { keyword: string; count: number }[];
 }
