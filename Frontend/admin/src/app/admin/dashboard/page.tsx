@@ -200,8 +200,8 @@ export default function DashboardPage() {
         title: '매칭 도메인',
         kpis: [
           { label: '총 매칭 수', value: matchingStats?.totalMatches?.toLocaleString() ?? '-', highlight: true },
-          { label: '성공률', value: matchingStats ? `${matchingStats.successRate}%` : '-' },
-          { label: '평균 소요', value: matchingStats ? `${matchingStats.averageMatchTime}일` : '-' },
+          { label: '성공률', value: matchingStats ? `${Number(matchingStats.successRate).toFixed(1)}%` : '-' },
+          { label: '평균 소요', value: matchingStats?.averageMatchTimeHours != null ? `${Number(matchingStats.averageMatchTimeHours).toFixed(1)}시간` : '-' },
         ],
       },
     ],
