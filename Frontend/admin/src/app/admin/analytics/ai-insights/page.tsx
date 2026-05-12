@@ -35,7 +35,7 @@ import {
   DegradedBadge,
 } from '@/components/common/AnalyticsStatus';
 import { periodToTimestampRange, type AnalyticsPeriod } from '@/lib/utils/analyticsRange';
-import type { AiPerformanceResponse, AiModelStat } from '@/types/analytics';
+import type { AiPerformanceResponse } from '@/types/analytics';
 
 const MODEL_COLORS: Record<string, string> = {
   KcELECTRA: '#8b5cf6',
@@ -60,16 +60,37 @@ export default function AiInsightsPage() {
   const query = useAiPerformance({ startTs, endTs });
   const data: AiPerformanceResponse | undefined = query.data;
 
+  // 백엔드 응답: diaryAnalysis / lifestyleAnalysis 두 섹션
   const modelData = useMemo(() => {
     if (!data) return [];
-    return (data?.models ?? []).map((m: AiModelStat) => ({
-      model: m.model,
-      total: m.totalProcessed,
-      succeeded: m.succeeded,
-      failed: m.failed,
-      successRate: m.successRate ?? 0,
-      color: MODEL_COLORS[m.model] ?? '#6b7280',
-    }));
+    const sections: { model: string; total: number; succeeded: number; failed: number; pending: number; successRate: number; avgLatencyMs: number; color: string }[] = [];
+    if (data.diaryAnalysis) {
+      const d = data.diaryAnalysis;
+      sections.push({
+        model: 'KcELECTRA',
+        total: d.total,
+        succeeded: d.completed,
+        failed: d.failed,
+        pending: d.pending,
+        successRate: d.completionRate ?? 0,
+        avgLatencyMs: d.avgLatencyMs ?? 0,
+        color: MODEL_COLORS['KcELECTRA'] ?? '#8b5cf6',
+      });
+    }
+    if (data.lifestyleAnalysis) {
+      const l = data.lifestyleAnalysis;
+      sections.push({
+        model: 'KoSimCSE',
+        total: l.total,
+        succeeded: l.completed,
+        failed: l.failed,
+        pending: l.pending,
+        successRate: l.completionRate ?? 0,
+        avgLatencyMs: l.avgLatencyMs ?? 0,
+        color: MODEL_COLORS['KoSimCSE'] ?? '#3b82f6',
+      });
+    }
+    return sections;
   }, [data]);
 
   // PieChart 용: 각 모델 처리량 비중
@@ -142,8 +163,8 @@ export default function AiInsightsPage() {
             />
             <KpiCard
               title="라이프스타일 분석량"
-              value={(data.lifestyleThroughput ?? 0).toLocaleString()}
-              description="기간 내 라이프스타일 분석 건수"
+              value={(data.lifestyleAnalysis?.total ?? 0).toLocaleString()}
+              description={`완료율 ${((data.lifestyleAnalysis?.completionRate ?? 0) * 100).toFixed(1)}%`}
               icon={Target}
               valueClassName="text-primary"
             />

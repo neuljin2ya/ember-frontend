@@ -56,13 +56,13 @@ const TAG_TYPE_OPTIONS: KeywordTagType[] = ['ALL', 'EMOTION', 'LIFESTYLE', 'RELA
 function adaptItems(items: KeywordItem[]) {
   return items.map((it, idx) => ({
     rank: idx + 1,
-    keyword: it.label,
+    keyword: it.keyword,
     category: TAG_TYPE_LABELS[it.tagType] ?? it.tagType,
     tagType: it.tagType,
-    frequency: it.count,
-    diaryCount: it.diaryCount,
-    userCount: it.userCount,
-    share: it.share ?? 0,
+    frequency: it.freq,
+    diaryCount: it.diaryFreq,
+    userCount: it.userFreq,
+    avgScore: it.avgScore,
     masked: it.masked,
   }));
 }
@@ -179,7 +179,7 @@ export default function KeywordsAnalysisPage() {
             />
             <KpiCard
               title="총 사용 횟수"
-              value={(data.totalCount ?? 0).toLocaleString()}
+              value={rows.reduce((s, k) => s + k.frequency, 0).toLocaleString()}
               description="기간 내 전체 키워드 사용 합계"
               icon={Repeat}
             />
@@ -355,7 +355,7 @@ export default function KeywordsAnalysisPage() {
                     <span>키워드</span>
                     <span>카테고리</span>
                     <span className="text-right">사용 빈도</span>
-                    <span className="text-right">점유율</span>
+                    <span className="text-right">평균 점수</span>
                   </div>
                   {/* 행 */}
                   <div className="divide-y divide-border">
@@ -381,7 +381,7 @@ export default function KeywordsAnalysisPage() {
                         </span>
                         <span className="text-right tabular-nums">{(item.frequency ?? 0).toLocaleString()}</span>
                         <span className="text-right tabular-nums font-medium text-muted-foreground">
-                          {(item.share * 100).toFixed(1)}%
+                          {(item.avgScore ?? 0).toFixed(2)}
                         </span>
                       </div>
                     ))}

@@ -38,7 +38,7 @@ export interface AnalyticsDateRangeParams {
 
 export interface MatchingFunnelDailyPoint {
   date: string;
-  recommendations: number;
+  recs: number;
   accepts: number;
   exchanges: number;
   couples: number;
@@ -118,11 +118,11 @@ export type KeywordTagType = 'EMOTION' | 'LIFESTYLE' | 'RELATIONSHIP_STYLE' | 'T
 
 export interface KeywordItem {
   tagType: KeywordTagType;
-  label: string;
-  count: number;
-  diaryCount: number;
-  userCount: number;
-  share: number | null;      // count / totalCount
+  keyword: string;
+  freq: number;
+  diaryFreq: number;
+  userFreq: number;
+  avgScore: number;
   masked: boolean;           // k-anonymity 미충족 시 true
 }
 
@@ -130,7 +130,7 @@ export interface KeywordTopResponse {
   period: AnalyticsPeriod;
   tagType: KeywordTagType;
   items: KeywordItem[];
-  totalCount: number;
+  kMin: number;
   meta: AnalyticsBaseMeta;
 }
 
@@ -144,8 +144,8 @@ export interface SegmentRow {
   gender: string | null;
   ageGroup: string | null;
   regionCode: string | null;
-  value: number;
-  share: number | null;
+  users: number;
+  reason: string;
   masked: boolean;
 }
 
@@ -165,10 +165,12 @@ export interface SegmentOverviewResponse {
 
 export interface JourneyStageDuration {
   stage: string; // signup->profile / profile->match / match->exchange / exchange->couple
-  p50Hours: number | null;
-  p90Hours: number | null;
-  p99Hours: number | null;
-  sampleSize: number;
+  p50H: number | null;
+  p90H: number | null;
+  p99H: number | null;
+  meanH: number | null;
+  stddevH: number | null;
+  n: number;
 }
 
 export interface JourneyDurationResponse {
@@ -181,19 +183,28 @@ export interface JourneyDurationResponse {
 // B-1.6 AI 성능 (AiPerformanceResponse)
 // ---------------------------------------------------------------------------
 
-export interface AiModelStat {
-  model: string; // KcELECTRA / KoSimCSE / ...
-  totalProcessed: number;
-  succeeded: number;
+export interface AiAnalysisDailyPoint {
+  date: string;
+  completed: number;
   failed: number;
-  successRate: number | null;
+  avgLatencyMs: number;
+}
+
+export interface AiAnalysisSection {
+  total: number;
+  completed: number;
+  failed: number;
+  pending: number;
+  completionRate: number;
+  avgLatencyMs: number;
+  daily: AiAnalysisDailyPoint[];
 }
 
 export interface AiPerformanceResponse {
-  periodStart: string; // ISO datetime
-  periodEnd: string;
-  models: AiModelStat[];
-  lifestyleThroughput: number; // 기간 내 라이프스타일 분석 건수
+  period: AnalyticsPeriod;
+  diaryAnalysis: AiAnalysisSection;
+  lifestyleAnalysis: AiAnalysisSection;
+  degraded: boolean;
   meta: AnalyticsBaseMeta;
 }
 
@@ -201,19 +212,13 @@ export interface AiPerformanceResponse {
 // B-1.7 매칭 다양성·재추천 (MatchingDiversityResponse)
 // ---------------------------------------------------------------------------
 
-export interface DiversityDailyPoint {
-  date: string;
-  shannonEntropy: number | null;
-  uniquePairs: number;
-  totalRecommendations: number;
-}
-
 export interface MatchingDiversityResponse {
   period: AnalyticsPeriod;
-  daily: DiversityDailyPoint[];
-  avgShannonEntropy: number | null;
+  totalRecs: number;
+  uniqueCandidates: number;
+  shannonEntropy: number | null;
+  rerecommendationCount: number;
   rerecommendationRate: number | null;
-  rerecommendationWindowDays: number;
   meta: AnalyticsBaseMeta;
 }
 
@@ -279,8 +284,10 @@ export interface DiaryLengthQualityResponse {
 // ---------------------------------------------------------------------------
 
 export interface EmotionTrendPoint {
-  date: string;                 // bucket=day 면 yyyy-MM-dd, week 면 주 월요일
-  counts: Record<string, number>; // { HAPPY: 12, SAD: 3, ... }
+  bucketDate: string;           // bucket=day 면 yyyy-MM-dd, week 면 주 월요일
+  emotion: string;
+  freq: number;
+  avgScore: number;
 }
 
 export interface DiaryEmotionTrendResponse {
@@ -322,11 +329,11 @@ export interface ResponseDelayStats {
 }
 
 export interface TurnResponseRow {
-  turn: number; // 1, 2, 3, 4
-  responded: number;
-  timedOut: number;
+  fromTurn: number;
+  toTurn: number;
+  samples: number;
   rate: number | null;
-  delay: ResponseDelayStats;
+  p50Hours: number;
 }
 
 export interface ExchangeResponseRateResponse {
@@ -334,7 +341,7 @@ export interface ExchangeResponseRateResponse {
   windowHours: number;
   firstResponseRate: number | null; // 턴1 제출 후 window 내 턴2
   turnRows: TurnResponseRow[];
-  overallDelay: ResponseDelayStats;
+  responseDelay: ResponseDelayStats;
   meta: AnalyticsBaseMeta;
 }
 
@@ -351,15 +358,18 @@ export type ExchangeFunnelStageKey =
   | 'CHAT_CONNECTED';
 
 export interface ExchangeFunnelStage {
-  stage: ExchangeFunnelStageKey;
+  name: string;
   count: number;
   rate: number | null;     // vs ROOM_CREATED
+  stepRate: number;
+  cumulative: number;
   dropoffRate: number | null;
 }
 
 export interface ExchangeTurnFunnelResponse {
   period: AnalyticsPeriod;
   stages: ExchangeFunnelStage[];
+  overallChatRate: number;
   worstStage: ExchangeFunnelStageKey | null;
   meta: AnalyticsBaseMeta;
 }
@@ -421,9 +431,13 @@ export interface KMeansCluster {
   clusterId: number;
   userCount: number;
   share: number | null;
-  centroidZ: number[];   // [recency_z, frequency_z, engagement_z]
-  centroidRaw: number[]; // original-scale
-  avgDistance: number | null;
+  centroidRZ: number;
+  centroidFZ: number;
+  centroidEZ: number;
+  centroidR: number;
+  centroidF: number;
+  centroidE: number;
+  avgDistance: number;
   label: string;         // auto label: HIGH_ENGAGEMENT / ACTIVE / CHURNING / DORMANT / ...
 }
 

@@ -64,10 +64,10 @@ export default function JourneyAnalysisPage() {
     return (data.stages ?? []).map((s: JourneyStageDuration, idx: number) => ({
       stage: STAGE_LABEL_MAP[s.stage] ?? s.stage,
       stageKey: s.stage,
-      p50: s.p50Hours ?? 0,
-      p90: s.p90Hours ?? 0,
-      p99: s.p99Hours ?? 0,
-      sampleSize: s.sampleSize ?? 0,
+      p50: s.p50H ?? 0,
+      p90: s.p90H ?? 0,
+      p99: s.p99H ?? 0,
+      sampleSize: s.n ?? 0,
       color: STAGE_COLORS[idx % STAGE_COLORS.length],
     }));
   }, [data]);
