@@ -12,9 +12,9 @@ export const dashboardApi = {
   getKPI: (params?: { startDate?: string; endDate?: string; compareMode?: 'PREVIOUS_DAY' | 'PREVIOUS_WEEK' | 'PREVIOUS_MONTH' }) =>
     apiClient.get<ApiResponse<DashboardKPIResponse>>('/api/admin/dashboard/kpi', { params }),
 
-  // 3.2 주요 지표 요약
+  // 3.2 주요 지표 요약 (daily-stats로 대체)
   getSummary: (params?: { startDate?: string; endDate?: string; compareMode?: string }) =>
-    apiClient.get<ApiResponse<SummaryCategory[]>>('/api/admin/dashboard/summary', { params }),
+    apiClient.get<ApiResponse<SummaryCategory[]>>('/api/admin/dashboard/daily-stats', { params }),
 
   // 3.2 주요 지표 내보내기
   exportSummary: (params?: { startDate?: string; endDate?: string; format?: 'CSV' | 'EXCEL' }) =>

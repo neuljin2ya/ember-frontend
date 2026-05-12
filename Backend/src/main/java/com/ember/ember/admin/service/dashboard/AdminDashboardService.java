@@ -164,8 +164,8 @@ public class AdminDashboardService {
             """;
 
         Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("start", startDate);
-        query.setParameter("end", endDate);
+        query.setParameter("start", startDate.toString());
+        query.setParameter("end", endDate.toString());
 
         List<Object[]> rows = query.getResultList();
         List<DailyStatsResponse> result = new ArrayList<>();

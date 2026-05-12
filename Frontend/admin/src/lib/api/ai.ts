@@ -12,11 +12,11 @@ import type {
 export const aiApi = {
   // AI 파이프라인 상태 조회
   getPipelineStatus: () =>
-    apiClient.get<ApiResponse<PipelineStatus[]>>('/api/admin/ai/pipeline/status'),
+    apiClient.get<ApiResponse<PipelineStatus[]>>('/api/admin/ai/pipeline/metrics'),
 
-  // RabbitMQ 큐 상태 조회
+  // RabbitMQ 큐 상태 조회 (monitoring API 사용)
   getQueueStatus: () =>
-    apiClient.get<ApiResponse<QueueStatus[]>>('/api/admin/ai/queue/status'),
+    apiClient.get<ApiResponse<QueueStatus[]>>('/api/admin/monitoring/mq/status'),
 
   // 일기 재분석 트리거
   reanalyze: (diaryId: number) =>
@@ -32,7 +32,7 @@ export const aiApi = {
 
   // AI 분석 동의 철회 통계
   getConsentStats: (params?: { startDate?: string; endDate?: string; granularity?: string }) =>
-    apiClient.get<ApiResponse<ConsentWithdrawalStats>>('/api/admin/ai/analysis-consent/stats', { params }),
+    apiClient.get<ApiResponse<ConsentWithdrawalStats>>('/api/admin/monitoring/ai/consent-stats', { params }),
 
   // 모델 재학습 트리거
   retrain: (modelType: string) =>

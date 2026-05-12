@@ -12,14 +12,14 @@ export const appealsApi = {
   // 17.2.1 목록 조회 (VIEWER 이상)
   getList: (params: AppealSearchParams) =>
     apiClient.get<ApiResponse<PageResponse<SanctionAppeal>>>(
-      '/api/admin/sanction-appeals',
+      '/api/admin/support/appeals',
       { params },
     ),
 
   // 17.2.2 상세 조회 (VIEWER 이상)
   getDetail: (appealId: number) =>
     apiClient.get<ApiResponse<SanctionAppeal>>(
-      `/api/admin/sanction-appeals/${appealId}`,
+      `/api/admin/support/appeals/${appealId}`,
     ),
 
   // 17.2.3 수락 (ADMIN 이상) — 제재 자동 해제

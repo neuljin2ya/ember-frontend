@@ -88,8 +88,8 @@ public class AdminReportService {
         }
 
         // enum → String 변환: native query 에서 null enum 파라미터의 bytea 추론 오류 방지
-        String statusStr = status != null ? status.name() : null;
-        String reasonStr = reason != null ? reason.name() : null;
+        String statusStr = status != null ? status.name() : "";
+        String reasonStr = reason != null ? reason.name() : "";
 
         LocalDateTime now = LocalDateTime.now();
         Page<Report> page = reportRepository.searchReports(

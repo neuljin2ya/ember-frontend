@@ -16,13 +16,13 @@ import type {
 export const inquiriesApi = {
   // 17.1.1 목록 조회 (VIEWER 이상)
   getList: (params: InquirySearchParams) =>
-    apiClient.get<ApiResponse<PageResponse<Inquiry>>>('/api/admin/inquiries', {
+    apiClient.get<ApiResponse<PageResponse<Inquiry>>>('/api/admin/support/inquiries', {
       params,
     }),
 
   // 17.1.2 상세 조회 (VIEWER 이상)
   getDetail: (inquiryId: number) =>
-    apiClient.get<ApiResponse<Inquiry>>(`/api/admin/inquiries/${inquiryId}`),
+    apiClient.get<ApiResponse<Inquiry>>(`/api/admin/support/inquiries/${inquiryId}`),
 
   // 17.1.3 담당자 배정 (ADMIN 이상)
   assign: (inquiryId: number, adminId: number) =>

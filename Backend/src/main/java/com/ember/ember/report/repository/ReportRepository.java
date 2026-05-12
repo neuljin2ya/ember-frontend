@@ -58,8 +58,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     @Query(value = """
             SELECT r.* FROM reports r
             LEFT JOIN admin_accounts assigned ON assigned.id = r.assigned_to
-            WHERE (CAST(:status AS varchar) IS NULL OR r.status = CAST(:status AS varchar))
-              AND (CAST(:reason AS varchar) IS NULL OR r.reason = CAST(:reason AS varchar))
+            WHERE (CAST(:status AS varchar) = '' OR r.status = CAST(:status AS varchar))
+              AND (CAST(:reason AS varchar) = '' OR r.reason = CAST(:reason AS varchar))
               AND (CAST(:minPriority AS integer) IS NULL OR r.priority_score >= CAST(:minPriority AS integer))
               AND (
                     :assigneeFilter = 'ANY'
@@ -72,8 +72,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             """,
             countQuery = """
             SELECT COUNT(*) FROM reports r
-            WHERE (CAST(:status AS varchar) IS NULL OR r.status = CAST(:status AS varchar))
-              AND (CAST(:reason AS varchar) IS NULL OR r.reason = CAST(:reason AS varchar))
+            WHERE (CAST(:status AS varchar) = '' OR r.status = CAST(:status AS varchar))
+              AND (CAST(:reason AS varchar) = '' OR r.reason = CAST(:reason AS varchar))
               AND (CAST(:minPriority AS integer) IS NULL OR r.priority_score >= CAST(:minPriority AS integer))
               AND (
                     :assigneeFilter = 'ANY'
@@ -97,7 +97,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     /** PENDING/IN_REVIEW 상태의 신고 전체 (SLA summary 계산용). JOIN FETCH 로 N+1 방지. */
     @Query("""
-            SELECT r FROM Report r
+            SELECT DISTINCT r FROM Report r
             JOIN FETCH r.targetUser
             JOIN FETCH r.reporter
             WHERE r.status IN (com.ember.ember.report.domain.Report.ReportStatus.PENDING,
