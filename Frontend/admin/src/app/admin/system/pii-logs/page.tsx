@@ -15,15 +15,17 @@ import { formatDateTime } from '@/lib/utils/format';
 import type { DataTableColumn } from '@/components/common/DataTable';
 import { Loader2 } from 'lucide-react';
 
-type AccessType = 'EMAIL_VIEW' | 'REAL_NAME_VIEW' | 'PHONE_VIEW';
+type AccessType = 'EMAIL_VIEW' | 'EMAIL_FULL_VIEW' | 'REAL_NAME_VIEW' | 'PHONE_VIEW';
 
 interface PiiAccessLog {
   id: number;
   accessedAt: string;
-  adminEmail: string;
+  adminId: number;
+  adminName: string;
+  adminEmail?: string;
   accessType: AccessType;
   targetUserId: number;
-  targetNickname: string;
+  targetNickname?: string;
   ipAddress: string;
 }
 
@@ -33,14 +35,16 @@ interface PiiAccessLogPage {
   totalPages: number;
 }
 
-const ACCESS_TYPE_LABELS: Record<AccessType, string> = {
+const ACCESS_TYPE_LABELS: Record<string, string> = {
   EMAIL_VIEW: '이메일 조회',
+  EMAIL_FULL_VIEW: '이메일 전체 조회',
   REAL_NAME_VIEW: '실명 조회',
   PHONE_VIEW: '전화번호 조회',
 };
 
-const ACCESS_TYPE_COLORS: Record<AccessType, string> = {
+const ACCESS_TYPE_COLORS: Record<string, string> = {
   EMAIL_VIEW: 'bg-blue-50 text-blue-700 border-blue-200',
+  EMAIL_FULL_VIEW: 'bg-blue-50 text-blue-700 border-blue-200',
   REAL_NAME_VIEW: 'bg-orange-50 text-orange-700 border-orange-200',
   PHONE_VIEW: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -59,7 +63,7 @@ const columns: DataTableColumn<PiiAccessLog>[] = [
     key: 'adminEmail',
     header: '관리자',
     cell: (row) => (
-      <span className="text-sm font-medium">{row.adminEmail}</span>
+      <span className="text-sm font-medium">{row.adminName ?? row.adminEmail ?? '—'}</span>
     ),
   },
   {
@@ -79,8 +83,8 @@ const columns: DataTableColumn<PiiAccessLog>[] = [
     header: '대상 사용자',
     cell: (row) => (
       <span className="text-sm">
-        <span className="font-medium">#{row.targetUserId}</span>{' '}
-        <span className="text-muted-foreground">{row.targetNickname}</span>
+        <span className="font-medium">#{row.targetUserId}</span>
+        {row.targetNickname && <span className="text-muted-foreground"> {row.targetNickname}</span>}
       </span>
     ),
   },
