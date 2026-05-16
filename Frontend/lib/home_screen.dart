@@ -11,7 +11,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isRecent = true;
+  int _tabIndex = 0; // 0: 최근, 1: 인기, 2: 내 일기
 
   List<Map<String, dynamic>> _diaries = [];
   bool _isLoading = true;
@@ -25,9 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadDiaries() async {
     try {
-      final data = await ApiService.exploreDiaries(isRecent: _isRecent);
+      final data = await ApiService.exploreDiaries(isRecent: _tabIndex == 0);
+      final payload = data['data'];
+      final diaries = payload is Map ? payload['diaries'] : data['diaries'];
       setState(() {
-        _diaries = List<Map<String, dynamic>>.from(data['diaries'] ?? []);
+        _diaries = List<Map<String, dynamic>>.from(diaries ?? []);
         _isLoading = false;
       });
     } catch (e) {
@@ -69,32 +71,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       decoration: const BoxDecoration(
                         color: Color(0xFFE37474),
-                        borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(30)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(30),
+                        ),
                       ),
                     ),
                   ),
 
                   // 흰 카드 (볼록한 부분에 탭 원이 들어감)
                   // 흰 카드
-                  Positioned(top: 100, left: 0, right: 0, bottom: 0,
+                  Positioned(
+                    top: 100,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(30),
+                        ),
                       ),
                     ),
                   ),
 
-
                   // 탭 원 (흰 카드의 볼록한 부분 안에 위치)
+                  // 탭 원 3개
                   Positioned(
                     top: 55,
-                    left: 130,
+                    left: 20,
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          _isRecent = true;
+                          _tabIndex = 0;
                           _isLoading = true;
                         });
                         _loadDiaries();
@@ -105,29 +114,32 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: tabSize,
                             height: tabSize,
                             decoration: BoxDecoration(
-                              color: _isRecent
+                              color: _tabIndex == 0
                                   ? const Color(0xFFE37474)
-                                  : const Color(0xFFFFFFFF),
+                                  : Colors.white,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text('최근 일기',
-                              style: TextStyle(
-                                  color: Color(0xFF391713),
-                                  fontSize: 12,
-                                  fontFamily: 'Pretendard')),
+                          const Text(
+                            '최근 일기',
+                            style: TextStyle(
+                              color: Color(0xFF391713),
+                              fontSize: 12,
+                              fontFamily: 'Pretendard',
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
                   Positioned(
                     top: 55,
-                    left: 130 + tabSize + 36,
+                    left: 20 + tabSize + 20,
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          _isRecent = false;
+                          _tabIndex = 1;
                           _isLoading = true;
                         });
                         _loadDiaries();
@@ -138,18 +150,57 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: tabSize,
                             height: tabSize,
                             decoration: BoxDecoration(
-                              color: !_isRecent
+                              color: _tabIndex == 1
                                   ? const Color(0xFFE37474)
-                                  : const Color(0xFFFFFFFF),
+                                  : Colors.white,
                               shape: BoxShape.circle,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text('인기 일기',
-                              style: TextStyle(
-                                  color: Color(0xFF391713),
-                                  fontSize: 12,
-                                  fontFamily: 'Pretendard')),
+                          const Text(
+                            '인기 일기',
+                            style: TextStyle(
+                              color: Color(0xFF391713),
+                              fontSize: 12,
+                              fontFamily: 'Pretendard',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 55,
+                    left: 20 + (tabSize + 20) * 2,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _tabIndex = 2;
+                          _isLoading = true;
+                        });
+                        _loadDiaries();
+                      },
+                      child: Column(
+                        children: [
+                          Container(
+                            width: tabSize,
+                            height: tabSize,
+                            decoration: BoxDecoration(
+                              color: _tabIndex == 2
+                                  ? const Color(0xFFE37474)
+                                  : Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            '내 일기',
+                            style: TextStyle(
+                              color: Color(0xFF391713),
+                              fontSize: 12,
+                              fontFamily: 'Pretendard',
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -170,13 +221,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           title: diary['title'] ?? '제목 없음',
                           time: diary['createdAt'] ?? '',
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (_) => DiaryDetailScreen(
-                                title: diary['title'] ?? '',
-                                time: diary['createdAt'] ?? '',
-                                diaryId: diary['id'] ?? 0,
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DiaryDetailScreen(
+                                  title: diary['title'] ?? '',
+                                  time: diary['createdAt'] ?? '',
+                                  diaryId: diary['id'] ?? 0,
+                                ),
                               ),
-                            ));
+                            );
                           },
                         );
                       },
@@ -276,19 +330,25 @@ class _DiaryItem extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        color: Color(0xFF391713),
-                        fontSize: 18,
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF391713),
+                    fontSize: 18,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(time,
-                    style: const TextStyle(
-                        color: Color(0xFF391713),
-                        fontSize: 12,
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w300)),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    color: Color(0xFF391713),
+                    fontSize: 12,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
               ],
             ),
             const Icon(Icons.chevron_right, color: Color(0xFF391713)),

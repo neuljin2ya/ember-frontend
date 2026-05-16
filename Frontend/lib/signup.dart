@@ -3,7 +3,6 @@ import 'terms_detail.dart';
 import 'create_profile.dart';
 import 'api_service.dart';
 
-
 class SignUp extends StatefulWidget {
   final String realName;
   const SignUp({super.key, required this.realName});
@@ -151,26 +150,31 @@ class _SignUpState extends State<SignUp> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                    onPressed: (_agreeService && _agreePrivacy)
-                        ? () async {
-                      try {
-                        await ApiService.postConsent('AI_ANALYSIS');
-                        await ApiService.postConsent('AI_DATA_USAGE');
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => CreateProfile(realName: widget.realName)),
-                          );
+                  onPressed: (_agreeService && _agreePrivacy)
+                      ? () async {
+                          try {
+                            await ApiService.postConsent('AI_ANALYSIS');
+                            await ApiService.postConsent('AI_DATA_USAGE');
+                            if (context.mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      CreateProfile(realName: widget.realName),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('오류가 발생했습니다. 다시 시도해주세요.'),
+                                ),
+                              );
+                            }
+                          }
                         }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('오류가 발생했습니다. 다시 시도해주세요.')),
-                          );
-                        }
-                      }
-                    }
-                        : null,
+                      : null,
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE37474),
@@ -212,9 +216,7 @@ class _CheckIcon extends StatelessWidget {
     return SizedBox(
       width: 20,
       height: 20,
-      child: CustomPaint(
-        painter: _CheckPainter(checked: checked),
-      ),
+      child: CustomPaint(painter: _CheckPainter(checked: checked)),
     );
   }
 }

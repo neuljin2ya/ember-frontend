@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -476,10 +477,11 @@ class ApiService {
   // FCM 토큰 등록
   static Future<bool> registerFcmToken(String token) async {
     final headers = await _authHeaders();
+    final deviceType = Platform.isAndroid ? 'AOS' : 'IOS';
     final response = await http.post(
       Uri.parse('$baseUrl/api/users/me/fcm-token'),
       headers: headers,
-      body: jsonEncode({'fcmToken': token, 'deviceType': 'IOS'}),
+      body: jsonEncode({'fcmToken': token, 'deviceType': deviceType}),
     );
     return response.statusCode == 200 || response.statusCode == 201;
   }

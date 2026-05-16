@@ -19,7 +19,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final _locationController = TextEditingController(text: '서울시 서초구');
   final _ageController = TextEditingController(text: '23');
   final _jobController = TextEditingController(text: '학생');
-  List<String> _keywords = [];
+  List<int> _keywords = [];
   final _inquiryController = TextEditingController();
 
   void _showSavedSnackbar() {
@@ -56,13 +56,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       final data = await ApiService.getMyProfile();
       setState(() {
         _nameController.text = data['nickname'] ?? '';
-        _locationController.text = data['region'] ?? '';
-        _jobController.text = data['job'] ?? '';
+        _locationController.text = [
+          data['sido'],
+          data['sigungu'],
+        ].whereType<String>().join(' ');
+        _jobController.text = data['school'] ?? '';
       });
 
       final idealData = await ApiService.getMyIdealType();
       setState(() {
-        _keywords = List<String>.from(idealData['keywords'] ?? []);
+        _keywords = List<int>.from(idealData['keywords'] ?? []);
       });
     } catch (e) {}
   }
@@ -107,7 +110,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             label: 'Profile',
             icon: Icons.person_outline,
             isExpanded: _isProfileExpanded,
-            onTap: () => setState(() => _isProfileExpanded = !_isProfileExpanded),
+            onTap: () =>
+                setState(() => _isProfileExpanded = !_isProfileExpanded),
           ),
           if (_isProfileExpanded) ...[
             const Divider(color: Color(0xFFE37474), height: 1),
@@ -124,11 +128,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('사는 지역',
-                    style: TextStyle(
-                        color: Color(0xFF391713),
-                        fontSize: 14,
-                        fontFamily: 'Pretendard')),
+                const Text(
+                  '사는 지역',
+                  style: TextStyle(
+                    color: Color(0xFF391713),
+                    fontSize: 14,
+                    fontFamily: 'Pretendard',
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -136,25 +143,36 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       child: CitySearchField(controller: _locationController),
                     ),
                     const SizedBox(width: 8),
-                    _ConfirmButton(onTap: () async {
-                      await ApiService.updateProfile(region: _locationController.text);
-                      _showSavedSnackbar();
-                    }),
+                    _ConfirmButton(
+                      onTap: () async {
+                        final parts = _locationController.text.trim().split(
+                          ' ',
+                        );
+                        await ApiService.updateProfile(
+                          sido: parts.isNotEmpty ? parts.first : '',
+                          sigungu: parts.length > 1
+                              ? parts.sublist(1).join(' ')
+                              : '',
+                        );
+                        _showSavedSnackbar();
+                      },
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 12),
             _EditField(
-                label: '나이',
-                controller: _ageController,
-                keyboardType: TextInputType.number),
+              label: '나이',
+              controller: _ageController,
+              keyboardType: TextInputType.number,
+            ),
             const SizedBox(height: 12),
             _EditField(
               label: '직업',
               controller: _jobController,
               onConfirm: () async {
-                await ApiService.updateProfile(job: _jobController.text);
+                await ApiService.updateProfile(school: _jobController.text);
                 _showSavedSnackbar();
               },
             ),
@@ -190,15 +208,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE37474),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('저장',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w600)),
+                child: const Text(
+                  '저장',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -223,7 +245,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               style: const TextStyle(fontSize: 14, fontFamily: 'Pretendard'),
               decoration: InputDecoration(
                 hintText: '문의 내용을 입력해주세요.',
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                hintStyle: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontSize: 14,
+                ),
                 filled: true,
                 fillColor: const Color(0xFFF8F8F8),
                 border: OutlineInputBorder(
@@ -243,17 +268,27 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               child: ElevatedButton(
                 onPressed: () async {
                   if (_inquiryController.text.trim().isEmpty) return;
-                  await ApiService.submitInquiry(_inquiryController.text.trim());
+                  await ApiService.submitInquiry(
+                    _inquiryController.text.trim(),
+                  );
                   _inquiryController.clear();
                   _showSavedSnackbar();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE37474),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('문의 보내기',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'Pretendard')),
+                child: const Text(
+                  '문의 보내기',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Pretendard',
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -301,9 +336,7 @@ class _SectionHeader extends StatelessWidget {
               ),
             ),
             Icon(
-              isExpanded
-                  ? Icons.keyboard_arrow_up
-                  : Icons.keyboard_arrow_down,
+              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
               color: const Color(0xFF9CA3AF),
             ),
           ],
@@ -331,11 +364,14 @@ class _EditField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: Color(0xFF391713),
-                fontSize: 14,
-                fontFamily: 'Pretendard')),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF391713),
+            fontSize: 14,
+            fontFamily: 'Pretendard',
+          ),
+        ),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -344,14 +380,17 @@ class _EditField extends StatelessWidget {
                 controller: controller,
                 keyboardType: keyboardType,
                 style: const TextStyle(
-                    color: Color(0xFF391713),
-                    fontSize: 15,
-                    fontFamily: 'Pretendard'),
+                  color: Color(0xFF391713),
+                  fontSize: 15,
+                  fontFamily: 'Pretendard',
+                ),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Color(0xFFE5E5E5)),

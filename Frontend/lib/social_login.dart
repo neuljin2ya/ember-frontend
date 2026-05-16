@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'signup.dart';
 import 'api_service.dart';
 
 class SocialLogin extends StatelessWidget {
   const SocialLogin({super.key});
+
+  Future<OAuthToken> _loginWithKakao() async {
+    if (!await isKakaoTalkInstalled()) {
+      return UserApi.instance.loginWithKakaoAccount();
+    }
+
+    try {
+      return await UserApi.instance.loginWithKakaoTalk();
+    } on PlatformException catch (e) {
+      debugPrint('카카오톡 로그인 실패, 웹 로그인으로 재시도: ${e.code} ${e.message}');
+      return UserApi.instance.loginWithKakaoAccount();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,13 +38,7 @@ class SocialLogin extends StatelessWidget {
             GestureDetector(
               onTap: () async {
                 try {
-                  // 카카오 로그인
-                  OAuthToken token;
-                  if (await isKakaoTalkInstalled()) {
-                    token = await UserApi.instance.loginWithKakaoTalk();
-                  } else {
-                    token = await UserApi.instance.loginWithKakaoAccount();
-                  }
+                  final token = await _loginWithKakao();
 
                   final user = await UserApi.instance.me();
 
@@ -42,13 +50,19 @@ class SocialLogin extends StatelessWidget {
 
                   if (context.mounted) {
                     final data = result['data'] ?? {};
+                    final role = data['role'] ?? result['role'];
                     final onboardingCompleted =
-                        data['onboardingCompleted'] ?? false;
+                        data['onboardingCompleted'] ??
+                        result['onboardingCompleted'] ??
+                        role == 'ROLE_USER';
 
-                    if (!onboardingCompleted) {
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => const SignUp(realName: ''),
-                      ));
+                    if (onboardingCompleted != true) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SignUp(realName: ''),
+                        ),
+                      );
                     } else {
                       Navigator.pushReplacementNamed(context, '/home');
                     }
@@ -57,9 +71,9 @@ class SocialLogin extends StatelessWidget {
                   print('카카오 로그인 오류: $e');
                   print('스택: $s');
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('로그인 오류: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('로그인 오류: $e')));
                   }
                 }
               },

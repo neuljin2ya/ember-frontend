@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
-const List<String> keywordList = [
-  '안정적인 사람',
-  '긍정적인 사람',
-  '따뜻한 사람',
-  '공감적인 사람',
-  '다정한 사람',
-  '솔직한 사람',
-  '성실한 사람',
-  '도전적인 사람',
-  '자유로운 사람',
-  '깊이 있는 사람',
+const List<Map<String, dynamic>> keywordList = [
+  {'id': 1, 'label': '안정적인 사람'},
+  {'id': 2, 'label': '긍정적인 사람'},
+  {'id': 3, 'label': '따뜻한 사람'},
+  {'id': 4, 'label': '공감적인 사람'},
+  {'id': 5, 'label': '다정한 사람'},
+  {'id': 6, 'label': '솔직한 사람'},
+  {'id': 7, 'label': '성실한 사람'},
+  {'id': 8, 'label': '도전적인 사람'},
+  {'id': 9, 'label': '자유로운 사람'},
+  {'id': 10, 'label': '깊이 있는 사람'},
 ];
 
 class KeywordSelector extends StatefulWidget {
-  final ValueChanged<List<String>>? onChanged;
+  final ValueChanged<List<int>>? onChanged;
 
   const KeywordSelector({super.key, this.onChanged});
 
@@ -23,12 +23,12 @@ class KeywordSelector extends StatefulWidget {
 }
 
 class _KeywordSelectorState extends State<KeywordSelector> {
-  final List<String> _selected = [];
+  final List<Map<String, dynamic>> _selected = [];
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
-  List<String> get _available =>
-      keywordList.where((k) => !_selected.contains(k)).toList();
+  List<Map<String, dynamic>> get _available =>
+      keywordList.where((k) => !_selected.any((s) => s['id'] == k['id'])).toList();
 
   void _toggleDropdown() {
     if (_overlayEntry != null) {
@@ -47,19 +47,19 @@ class _KeywordSelectorState extends State<KeywordSelector> {
   void _removeDropdown() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
-  void _select(String keyword) {
+  void _select(Map<String, dynamic> keyword) {
     if (_selected.length >= 3) return;
     setState(() => _selected.add(keyword));
     _removeDropdown();
-    widget.onChanged?.call(_selected);
+    widget.onChanged?.call(_selected.map((k) => k['id'] as int).toList());
   }
 
-  void _remove(String keyword) {
-    setState(() => _selected.remove(keyword));
-    widget.onChanged?.call(_selected);
+  void _remove(Map<String, dynamic> keyword) {
+    setState(() => _selected.removeWhere((k) => k['id'] == keyword['id']));
+    widget.onChanged?.call(_selected.map((k) => k['id'] as int).toList());
   }
 
   OverlayEntry _buildOverlay() {
@@ -96,7 +96,7 @@ class _KeywordSelectorState extends State<KeywordSelector> {
                           child: Row(
                             children: [
                               Text(
-                                keyword,
+                                keyword['label'],
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF391713),
@@ -133,31 +133,26 @@ class _KeywordSelectorState extends State<KeywordSelector> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 선택된 태그들 - Wrap으로 잘림 방지
           if (_selected.isNotEmpty) ...[
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _selected.map((keyword) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFD8DDE3)),
                     boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x0C17191C),
-                        blurRadius: 4,
-                      ),
+                      BoxShadow(color: Color(0x0C17191C), blurRadius: 4),
                     ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        keyword,
+                        keyword['label'],
                         style: const TextStyle(
                           color: Color(0xFF4C5C6B),
                           fontSize: 14,
@@ -168,11 +163,7 @@ class _KeywordSelectorState extends State<KeywordSelector> {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () => _remove(keyword),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: Color(0xFF4C5C6B),
-                        ),
+                        child: const Icon(Icons.close, size: 14, color: Color(0xFF4C5C6B)),
                       ),
                     ],
                   ),
@@ -182,7 +173,6 @@ class _KeywordSelectorState extends State<KeywordSelector> {
             const SizedBox(height: 10),
           ],
 
-          // 드롭다운 버튼
           GestureDetector(
             onTap: _selected.length < 3 ? _toggleDropdown : null,
             child: Container(

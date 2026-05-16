@@ -70,7 +70,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isOverLimit = _bodyLength >= 2000;
+    final bool isOverLimit = _bodyLength >= 1000;
 
     return GestureDetector(
         onTap: () {
@@ -209,7 +209,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         ),
                       ),
                       Text(
-                        '$_bodyLength/2000',
+                        '$_bodyLength/1000',
                         style: TextStyle(
                           color: isOverLimit
                               ? const Color(0xFFE37474)
@@ -232,7 +232,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       controller: _bodyController,
                       maxLines: null,
                       expands: true,
-                      maxLength: 2000,
+                      maxLength: 1000,
                       buildCounter: (_, {required currentLength,
                         required isFocused, maxLength}) => null,
                       onChanged: (v) =>
@@ -273,10 +273,22 @@ class _DiaryScreenState extends State<DiaryScreen> {
                             );
                             return;
                           }
+                          if (_bodyController.text.trim().length < 200) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('일기는 최소 200자 이상 작성해주세요.')),
+                            );
+                            return;
+                          }
+                          if (_bodyController.text.trim().length > 1000) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('일기는 최대 1000자까지 작성 가능해요.')),
+                            );
+                            return;
+                          }
                           try {
                             await ApiService.postDiary(
                               content: _bodyController.text.trim(),
-                              visibility: 'PRIVATE',
+                              visibility: 'EXCHANGE_ONLY',
                             );
                             if (context.mounted) {
                               Navigator.push(context, MaterialPageRoute(
@@ -288,6 +300,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('오류가 발생했습니다.')),
                               );
+                              await Future.delayed(const Duration(seconds: 1));
+                              if (context.mounted) {
+                                Navigator.pushNamedAndRemoveUntil(context, '/socialLogin', (route) => false);
+                              }
                             }
                           }
                         },

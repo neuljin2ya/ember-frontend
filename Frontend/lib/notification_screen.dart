@@ -37,7 +37,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _markAllRead() async {
     for (final n in _notifications) {
       if (n['isRead'] == false) {
-        await ApiService.markNotificationRead(n['id']);
+        await ApiService.markNotificationRead(
+          n['notificationId'] ?? n['id'] ?? 0,
+        );
       }
     }
     setState(() {
@@ -83,13 +85,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFE37474)))
+              child: CircularProgressIndicator(color: Color(0xFFE37474)),
+            )
           : Column(
               children: [
                 // 새 알림 + 모두 읽기
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -124,7 +129,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             color: const Color(0x4CCACACA),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                                color: Colors.white.withOpacity(0.1)),
+                              color: Colors.white.withOpacity(0.1),
+                            ),
                           ),
                           child: const Text(
                             '모두 읽기',
@@ -157,7 +163,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       : ListView.separated(
                           itemCount: _notifications.length,
                           separatorBuilder: (_, __) => const Divider(
-                              height: 1, color: Color(0xFFE5E5E5)),
+                            height: 1,
+                            color: Color(0xFFE5E5E5),
+                          ),
                           itemBuilder: (context, index) {
                             final n = _notifications[index];
                             final isUnread = n['isRead'] == false;
@@ -165,29 +173,39 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               // onTap 부분 수정
                               onTap: () async {
                                 if (isUnread) {
-                                  await ApiService.markNotificationRead(n['id']);
+                                  await ApiService.markNotificationRead(
+                                    n['notificationId'] ?? n['id'] ?? 0,
+                                  );
                                   setState(() {
                                     n['isRead'] = true;
-                                    _unreadCount = _unreadCount > 0 ? _unreadCount - 1 : 0;
+                                    _unreadCount = _unreadCount > 0
+                                        ? _unreadCount - 1
+                                        : 0;
                                   });
                                 }
                                 // 매칭 요청 알림이면 DiaryDetailScreen으로 이동
-                                if (n['type'] == 'MATCHING' && context.mounted) {
-                                  Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => DiaryDetailScreen(
-                                      title: '',
-                                      time: '',
-                                      diaryId: n['diaryId'] ?? 0,
-                                      showBottomNav: false,
-                                      showMatchingButtons: true,
-                                      matchingId: n['matchingId'] ?? 0,
+                                if (n['type'] == 'MATCHING' &&
+                                    context.mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DiaryDetailScreen(
+                                        title: '',
+                                        time: '',
+                                        diaryId: n['diaryId'] ?? 0,
+                                        showBottomNav: false,
+                                        showMatchingButtons: true,
+                                        matchingId: n['matchingId'] ?? 0,
+                                      ),
                                     ),
-                                  ));
+                                  );
                                 }
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 color: isUnread
                                     ? const Color(0x19FB7154)
                                     : Colors.white,
@@ -216,7 +234,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            n['message'] ?? '',
+                                            n['body'] ?? n['message'] ?? '',
                                             style: const TextStyle(
                                               color: Color(0xFF111827),
                                               fontSize: 12,
@@ -241,10 +259,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                                 Container(
                                                   width: 4,
                                                   height: 4,
-                                                  decoration: const BoxDecoration(
-                                                    color: Color(0xFFFF7E64),
-                                                    shape: BoxShape.circle,
-                                                  ),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFFFF7E64,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
                                                 ),
                                               ],
                                             ],

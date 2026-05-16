@@ -210,7 +210,7 @@ class _CitySearchFieldState extends State<CitySearchField> {
   void _removeSuggestions() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() => _showSuggestions = false);
+    if (mounted) setState(() => _showSuggestions = false);
   }
 
   void _selectCity(String city) {

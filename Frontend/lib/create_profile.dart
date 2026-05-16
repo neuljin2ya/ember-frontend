@@ -20,7 +20,7 @@ class _CreateProfileState extends State<CreateProfile> {
   final _locationController = TextEditingController();
   final _occupationController = TextEditingController();
   final _realNameController = TextEditingController();
-  List<String> _keywords = [];
+  List<int> _keywords = [];
   int _currentPage = 0;
   String _selectedGender = 'MALE';
   DateTime? _selectedBirthDate;
@@ -62,7 +62,7 @@ class _CreateProfileState extends State<CreateProfile> {
 
   @override
   Widget build(BuildContext context) {
-    final cardHeight = MediaQuery.of(context).size.height * 0.50;
+    final cardHeight = MediaQuery.of(context).size.height * 0.65;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -72,23 +72,6 @@ class _CreateProfileState extends State<CreateProfile> {
       body: SafeArea(
         child: Column(
           children: [
-            Container(
-              color: _currentPage == 2
-                  ? Colors.white
-                  : const Color(0xFFE9E9E9),
-              child: TopNavBar(
-                onBack: () {
-                  if (_currentPage == 0) {
-                    Navigator.pop(context);
-                  } else {
-                    _prevPage();
-                  }
-                },
-                onClose: () =>
-                    Navigator.popUntil(context, (route) => route.isFirst),
-              ),
-            ),
-
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -433,6 +416,8 @@ class _CreateProfileState extends State<CreateProfile> {
                         ),
                         dots: _dots(active: 1),
                         button: _nextButton(onTap: () async {
+                          final token = await ApiService.getAccessToken();
+                          print('현재 토큰: $token');
                           try {
                             await ApiService.postIdealTypeKeywords(_keywords);
                             _nextPage();
@@ -489,9 +474,10 @@ class _CreateProfileState extends State<CreateProfile> {
                             _dots(active: 2),
                             const SizedBox(height: 16),
                             _nextButton(
-                              onTap: () => Navigator.push(
+                              onTap: () => Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(builder: (_) => const DiaryScreen()),
+                                    (route) => false,
                               ),
                               label: 'Get Started',
                             ),
