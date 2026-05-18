@@ -50,7 +50,7 @@ public class ExchangeRoomScheduler {
         Notification notification = Notification.create(user, "EXCHANGE_EXPIRED",
                 "교환일기 시간이 종료되었습니다.",
                 "교환일기 작성 기한이 만료되었습니다.",
-                "/exchange-rooms/" + room.getRoomUuid());
+                "/exchange-rooms/" + room.getId());
         notificationRepository.save(notification);
     }
 }

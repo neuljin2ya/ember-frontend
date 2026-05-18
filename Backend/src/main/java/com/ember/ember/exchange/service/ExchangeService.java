@@ -214,7 +214,7 @@ public class ExchangeService {
                 ? "4턴 교환일기가 모두 완료되었습니다. 관계 확장을 선택해주세요!"
                 : author.getNickname() + "님이 교환일기를 작성했어요.";
         Notification notification = Notification.create(partner, "EXCHANGE_DIARY",
-                title, body, "/exchange-rooms/" + room.getRoomUuid());
+                title, body, "/exchange-rooms/" + room.getId());
         notificationRepository.save(notification);
 
         log.info("[ExchangeService] 교환일기 작성 — roomId={}, turnNumber={}, isCompleted={}",

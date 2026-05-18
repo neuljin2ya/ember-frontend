@@ -524,7 +524,7 @@ public class ExploreService {
     private void sendMatchedNotification(User target, User partner, ExchangeRoom room) {
         String title = "교환일기가 시작되었어요!";
         String body = partner.getNickname() + "님과 교환일기가 시작되었습니다. 첫 번째 일기를 작성해보세요!";
-        String deeplink = "/exchange-rooms/" + room.getRoomUuid();
+        String deeplink = "/exchange-rooms/" + room.getId();
         Notification notification = Notification.create(
                 target, "MATCHING_MATCHED", title, body, deeplink);
         notificationRepository.save(notification);
