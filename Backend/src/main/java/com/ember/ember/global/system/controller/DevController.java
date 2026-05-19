@@ -161,9 +161,11 @@ public class DevController {
             "DELETE FROM exchange_diaries WHERE author_id = ?",
             "DELETE FROM exchange_diaries WHERE room_id IN (SELECT id FROM exchange_rooms WHERE user_a_id = ? OR user_b_id = ?)",
             "DELETE FROM exchange_reports WHERE room_id IN (SELECT id FROM exchange_rooms WHERE user_a_id = ? OR user_b_id = ?)",
-            // 5. exchange_rooms → chat_rooms 참조 (exchange_rooms 먼저 지워야 chat_rooms 삭제 가능)
+            // 5. 순환 참조 해제: exchange_rooms ↔ chat_rooms
+            "UPDATE exchange_rooms SET chat_room_id = NULL WHERE user_a_id = ? OR user_b_id = ?",
+            "UPDATE chat_rooms SET exchange_room_id = NULL WHERE user_a_id = ? OR user_b_id = ?",
+            // 6. exchange_rooms, chat_rooms 삭제 (순환 참조 해제 후)
             "DELETE FROM exchange_rooms WHERE user_a_id = ? OR user_b_id = ?",
-            // 6. chat_rooms (이제 참조하는 자식이 모두 제거됨)
             "DELETE FROM chat_rooms WHERE user_a_id = ? OR user_b_id = ?",
             // 7. matching
             "DELETE FROM matching_passes WHERE user_id = ? OR target_user_id = ?",
