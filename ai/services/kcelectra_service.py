@@ -24,6 +24,7 @@ import torch
 from config import MIN_CONTENT_LENGTH
 from models import get_kcelectra, EMOTION_TAGS, LIFESTYLE_AXES, RELATIONSHIP_AXES, TONE_TAGS
 from schemas.messages import AnalysisResult, AnalysisTag
+from services.gemini_summary_service import generate_summary
 
 logger = logging.getLogger(__name__)
 
@@ -59,35 +60,6 @@ def _classify_category(content: str) -> str:
         scores[cat] = sum(1 for kw in keywords if kw in content)
     best = max(scores, key=scores.get)
     return best if scores[best] > 0 else "DAILY"
-
-
-# ── summary 추출 ──────────────────────────────────────────────────────────────
-
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?。])\s+")
-
-
-def _extract_summary(content: str, max_chars: int = 50) -> str:
-    """본문에서 첫 1~2문장 50자 이내 추출."""
-    trimmed = content.strip()
-    if not trimmed:
-        return ""
-    sentences = _SENTENCE_SPLIT.split(trimmed)
-    sentences = [s.strip() for s in sentences if s.strip()]
-    if not sentences:
-        return trimmed[:max_chars]
-
-    candidate = sentences[0]
-    if len(candidate) < 10 and len(sentences) > 1:
-        candidate = f"{candidate} {sentences[1]}".strip()
-
-    if len(candidate) <= max_chars:
-        return candidate
-
-    cut = candidate[:max_chars]
-    last_space = cut.rfind(" ")
-    if last_space >= int(max_chars * 0.6):
-        return cut[:last_space]
-    return cut
 
 
 # ── warmup (main.py lifespan 호환) ───────────────────────────────────────────
@@ -162,8 +134,8 @@ async def analyze_diary(content: str) -> AnalysisResult:
         if score > 0.5:
             tags.append(AnalysisTag(type="TONE", label=tag_name, score=round(score, 4)))
 
-    # 7. summary + category
-    summary = _extract_summary(content)
+    # 7. summary (Gemini API) + category (규칙 기반)
+    summary = await generate_summary(content)
     category = _classify_category(content)
 
     return AnalysisResult(
