@@ -1,0 +1,5011 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ember API 서버",
+    "description": "Ember 사용자 + Dev API (총 88개)\n\n서버: https://ember-app.duckdns.org\n인증: Bearer 토큰 (GET /api/dev/token?userId=1 로 발급)\n\n# Dev API 사용법\n- GET /api/dev/token?userId={id} — 카카오 로그인 없이 테스트 토큰 발급\n- POST /api/dev/ai/simulate/{diaryId} — AI 분석 결과 시뮬레이션 (2~3초 후 diary_keywords 생성)\n- GET /api/dev/redis/summary — Redis 캐시 카테고리별 요약\n- GET /api/dev/redis/user/{userId} — 유저별 캐시 현황\n- GET /api/dev/redis/get?key= — Redis 키 값 + TTL 조회\n- DELETE /api/dev/redis/delete?key= — Redis 키 삭제\n- GET /api/dev/redis/keys?pattern= — 패턴으로 키 검색\n- POST /api/dev/exchange-rooms/{roomUuid}/force-complete — 교환일기 강제 완주\n\n# Rate Limiting\n- 인증 전 API: 20회/분 (IP 기준)\n- 인증 후 GET: 60회/분 (userId 기준)\n- 인증 후 POST/PUT/PATCH/DELETE: 30회/분 (userId 기준)\n- POST /api/auth/social: 5회/분, POST /api/diaries: 5회/분, POST /api/matching/*: 10회/분\n- 초과 시 429 + X-RateLimit-Limit/Remaining/Reset 헤더 + Retry-After\n\n# 에러 응답 형식\n{ \"code\": \"D001\", \"message\": \"오늘 이미 일기를 작성했습니다.\", \"status\": 409 }\n\n# 에러코드 목록\n\n## 공통 (C)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| C001 | 400 | 잘못된 요청입니다. |\n| C002 | 409 | 이미 존재하는 리소스입니다. |\n| C003 | 500 | 서버 내부 오류입니다. |\n| C004 | 429 | 요청 횟수가 초과되었습니다. |\n\n## 인증 (A)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| A001 | 401 | 인증 토큰이 없습니다. |\n| A002 | 401 | 만료된 토큰입니다. |\n| A003 | 401 | 존재하지 않는 계정입니다. |\n| A005 | 401 | 유효하지 않은 Refresh Token입니다. |\n| A006 | 401 | 로그아웃된 토큰입니다. |\n| A007 | 403 | 접근 권한이 없습니다. |\n| A009 | 401 | 소셜 인증에 실패했습니다. |\n| A011 | 401 | 유효하지 않은 복구 토큰입니다. |\n| A012 | 400 | 계정 복구 가능 기간이 만료되었습니다. |\n\n## 사용자 (U)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| U001 | 409 | 이미 사용 중인 닉네임입니다. |\n| U002 | 400 | 만 18세 이상만 가입 가능합니다. |\n| U004 | 400 | 이상형 키워드는 3~5개 선택해야 합니다. |\n| U005 | 404 | 존재하지 않는 키워드입니다. |\n| U006 | 400 | 닉네임 변경은 30일에 1회만 가능합니다. |\n\n## 일기 (D)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| D001 | 409 | 오늘 이미 일기를 작성했습니다. |\n| D002 | 400 | 글자 수 제한(200~1,000자)에 맞지 않습니다. |\n| D003 | 404 | 존재하지 않는 주제입니다. |\n| D004 | 404 | 존재하지 않는 일기입니다. |\n| D005 | 403 | 본인의 일기가 아닙니다. |\n| D006 | 400 | 당일 작성한 일기만 수정 가능합니다. |\n| D007 | 404 | 존재하지 않는 임시저장 일기입니다. |\n| D008 | 400 | 임시저장은 최대 3건까지 가능합니다. |\n\n## 매칭 (M)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| M001 | 409 | 이미 교환 신청한 사용자입니다. |\n| M002 | 400 | 자기 자신에게 신청할 수 없습니다. |\n| M003 | 403 | 차단된 사용자입니다. |\n| M004 | 400 | 일기를 먼저 작성해야 매칭이 가능합니다. |\n| M005 | 409 | 동시에 진행할 수 있는 교환일기는 최대 3건입니다. |\n| M006 | 404 | 존재하지 않는 매칭 요청입니다. |\n\n## 교환일기 (ER)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| ER001 | 404 | 존재하지 않는 교환일기 방입니다. |\n| ER002 | 403 | 교환일기 참여자가 아닙니다. |\n| ER003 | 400 | 현재 내 차례가 아닙니다. |\n| ER004 | 400 | 작성 제한 시간이 만료되었습니다. |\n| ER005 | 400 | 본인 일기에는 리액션할 수 없습니다. |\n\n## 다음 단계 (NS)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| NS001 | 400 | 교환일기가 완료되지 않아 선택할 수 없습니다. |\n| NS002 | 409 | 이미 선택을 완료했습니다. |\n\n## 채팅/커플 (CR)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| CR001 | 404 | 존재하지 않는 채팅방입니다. |\n| CR002 | 403 | 채팅방 참여자가 아닙니다. |\n| CR003 | 409 | 이미 커플 요청을 보냈습니다. |\n| CR004 | 409 | 이미 커플 확정된 채팅방입니다. |\n| CR007 | 400 | 이미 종료된 채팅방입니다. |\n\n## 신고/차단 (R/B)\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| R001 | 400 | 자기 자신을 신고할 수 없습니다. |\n| R002 | 409 | 이미 신고한 사용자입니다. |\n| B001 | 400 | 자기 자신을 차단할 수 없습니다. |\n| B002 | 409 | 이미 차단한 사용자입니다. |\n| B003 | 404 | 차단 기록이 없습니다. |\n\n## 기타\n| 코드 | HTTP | 메시지 |\n|------|------|--------|\n| SC001 | 400 | 부적절한 내용이 포함되어 있습니다. |\n| AC001 | 400 | 동의 이력이 없습니다. |\n| N001 | 404 | 존재하지 않는 알림입니다. |\n| SP001 | 429 | 진행 중인 문의가 너무 많습니다. |\n| AP001 | 400 | 정지 상태의 계정만 이의신청 가능합니다. |\n| AP002 | 409 | 이미 진행 중인 이의신청이 있습니다. |\n",
+    "version": "v2.2"
+  },
+  "servers": [
+    {
+      "url": "https://ember-app.duckdns.org",
+      "description": "Ember 배포 서버"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Diary",
+      "description": "일기 API"
+    },
+    {
+      "name": "Account",
+      "description": "계정 관리 API"
+    },
+    {
+      "name": "Couple",
+      "description": "커플 API"
+    },
+    {
+      "name": "헬스체크",
+      "description": "서버 상태 확인 API"
+    },
+    {
+      "name": "Notice/Support",
+      "description": "공지사항/FAQ/고객지원 API"
+    },
+    {
+      "name": "User",
+      "description": "사용자 프로필 API"
+    },
+    {
+      "name": "System",
+      "description": "시스템 API"
+    },
+    {
+      "name": "Report/Block",
+      "description": "신고/차단 API"
+    },
+    {
+      "name": "MyPage",
+      "description": "마이페이지 API"
+    },
+    {
+      "name": "Exchange",
+      "description": "교환일기 API"
+    },
+    {
+      "name": "Tutorial",
+      "description": "온보딩 튜토리얼 API"
+    },
+    {
+      "name": "Dev",
+      "description": "개발/테스트 API — 카카오 로그인 없이 토큰 발급, AI 시뮬레이션, Redis 캐시 관리"
+    },
+    {
+      "name": "Auth",
+      "description": "인증 API"
+    },
+    {
+      "name": "Matching",
+      "description": "매칭 탐색 API"
+    },
+    {
+      "name": "Notification",
+      "description": "알림 API"
+    },
+    {
+      "name": "Consent",
+      "description": "약관 동의 API"
+    },
+    {
+      "name": "Chat",
+      "description": "채팅 API"
+    },
+    {
+      "name": "IdealType",
+      "description": "이상형 키워드 API"
+    }
+  ],
+  "paths": {
+    "/api/users/me/ideal-type": {
+      "get": {
+        "tags": [
+          "MyPage"
+        ],
+        "summary": "이상형 키워드 조회 (마이페이지)",
+        "description": "마이페이지에서 이상형 키워드를 조회합니다.\n\n**응답:** 설정된 키워드 목록, maxSelectable(최대 선택 가능 수), nextEditableAt(다음 수정 가능 시간)",
+        "operationId": "getIdealType",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "keywords": [
+                      {
+                        "id": 1,
+                        "text": "안정적인 사람",
+                        "type": "PERSONALITY"
+                      }
+                    ],
+                    "maxSelectable": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "MyPage"
+        ],
+        "summary": "이상형 키워드 수정 (최대 3개, DELETE-then-INSERT)",
+        "description": "이상형 키워드를 수정합니다.\n\n**요청 필드:**\n- `keywordIds`: 키워드 ID 배열 (최대 3개)\n\n**동작:**\n- 기존 키워드 전부 삭제 후 새로 INSERT (DELETE-then-INSERT)\n- 매칭 추천 캐시(MATCHING:RECO:{userId}) 자동 무효화\n\n**에러:** U004(키워드 수 초과)",
+        "operationId": "updateIdealType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdealTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "keywords": [
+                      {
+                        "id": 1,
+                        "text": "안정적인 사람",
+                        "type": "PERSONALITY"
+                      }
+                    ],
+                    "maxSelectable": 3
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "키워드 초과",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "U004",
+                  "message": "이상형 키워드는 최대 3개까지 선택할 수 있습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/{targetUserId}/report": {
+      "post": {
+        "tags": [
+          "Report/Block"
+        ],
+        "summary": "사용자 신고",
+        "description": "사용자를 신고합니다.\n\n**요청 필드:**\n- `reason` (필수): 신고 사유 (예: \"SPAM\", \"HARASSMENT\")\n- `detail` (선택): 상세 설명\n\n**규칙:**\n- 자기 자신 신고 불가 (R001)\n- 동일 유저 7일 이내 중복 신고 불가 (R002)\n- 5건 누적 시 관리자에게 자동 알림\n\n**에러:** R001(자기 신고), R002(중복)",
+        "operationId": "reportUser",
+        "parameters": [
+          {
+            "name": "targetUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "자기 자신 신고 불가",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "R002",
+                  "message": "자기 자신을 신고할 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "7일 이내 중복 신고",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "R001",
+                  "message": "이미 신고한 사용자입니다 (7일 이내)",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/{targetUserId}/block": {
+      "post": {
+        "tags": [
+          "Report/Block"
+        ],
+        "summary": "사용자 차단 (연쇄 종료 포함)",
+        "description": "사용자를 차단합니다.\n\n**동작 (단일 트랜잭션):**\n1. 차단 기록 생성\n2. 진행 중인 매칭 요청 취소\n3. 활성 교환일기 방 종료 (TERMINATED)\n4. 활성 채팅방 종료\n5. 차단 상대 탐색/추천에서 영구 제외\n\n**에러:** B001(자기 차단), B002(이미 차단)",
+        "operationId": "blockUser",
+        "parameters": [
+          {
+            "name": "targetUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이미 차단된 사용자",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "B001",
+                  "message": "이미 차단된 사용자입니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Report/Block"
+        ],
+        "summary": "차단 해제",
+        "description": "차단을 해제합니다.\n\n**동작:** 차단 해제 후에도 종료된 교환/채팅은 복구되지 않음\n- 재차단 시 unique 위반 방지 처리 (reblock)\n\n**에러:** B003(차단 기록 없음)",
+        "operationId": "unblockUser",
+        "parameters": [
+          {
+            "name": "targetUserId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "차단 내역 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "B003",
+                  "message": "차단 내역을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/tutorial/complete": {
+      "post": {
+        "tags": [
+          "Tutorial"
+        ],
+        "summary": "튜토리얼 완료 처리",
+        "description": "튜토리얼 완료를 처리합니다.\n\n**동작:** tutorialCompletedAt에 현재 시간 기록. 이미 완료된 경우에도 멱등하게 동작합니다.",
+        "operationId": "completeTutorial",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/profile": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "프로필 등록 (온보딩 1단계)",
+        "description": "온보딩 1단계 — 기본 프로필을 등록합니다.\n\n**요청 필드:**\n- `nickname` (필수): 2~10자, 한글/영문/숫자\n- `birthDate` (필수): yyyy-MM-dd, 만 18세 이상\n- `gender` (필수): MALE 또는 FEMALE\n- `realName` (선택): 실명 2~5자 한글\n- `sido` (선택): 시/도 (예: \"서울특별시\")\n- `sigungu` (선택): 시/군/구 (예: \"강남구\")\n- `school` (선택): 학교명\n\n**동작:**\n- onboardingStep 0 → 1 변경\n- 닉네임 중복 시 U001, 미성년자 U002\n\n**에러:** U001(닉네임 중복), U002(미성년자)",
+        "operationId": "createProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "201",
+                  "message": "CREATED",
+                  "data": {
+                    "userId": 1,
+                    "nickname": "따뜻한별빛"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "미성년자",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "U002",
+                  "message": "만 18세 이상만 가입할 수 있습니다.",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "닉네임 중복",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "U001",
+                  "message": "이미 사용 중인 닉네임입니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/nickname/generate": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "랜덤 닉네임 생성 (형용사+명사 조합)",
+        "description": "랜덤 닉네임을 생성합니다. 인증 불필요.\n\n**동작:**\n- 형용사(20개) + 명사(20개) 조합으로 생성 (예: \"따뜻한별빛\", \"용감한하늘\")\n- 중복 검사 포함 — 기존 닉네임과 겹치지 않음\n- 프로필 등록 전 닉네임 미리보기 용도",
+        "operationId": "generateNickname",
+        "responses": {
+          "201": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "201",
+                  "message": "CREATED",
+                  "data": {
+                    "nickname": "따뜻한별빛"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/me/restore": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "탈퇴 유예 계정 복구",
+        "description": "탈퇴 유예 계정을 복구합니다 (마이페이지 경로).\n\n**동작:** DEACTIVATED → ACTIVE, 탈퇴 관련 필드 초기화\n- 30일 초과 시 복구 불가 (영구 삭제됨)",
+        "operationId": "restore",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ...",
+                    "userId": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/fcm-token": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "FCM 토큰 등록/갱신",
+        "description": "FCM 푸시 알림용 디바이스 토큰을 등록하거나 갱신합니다.\n\n**요청 필드:**\n- `fcmToken` (필수): Firebase에서 발급받은 디바이스 토큰\n- `deviceType` (필수): `AOS` 또는 `IOS` (ANDROID, iOS 아님 주의!)\n\n**동작:**\n- 동일 userId+deviceType 조합이면 토큰 갱신\n- 다른 유저가 같은 토큰을 가지고 있으면 기존 것 삭제 (디바이스 변경 대응)\n\n**에러:** C001(잘못된 deviceType)",
+        "operationId": "registerFcmToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FcmTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "C001",
+                  "message": "잘못된 요청입니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/deactivate": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "회원 탈퇴 (소프트 딜리트, 30일 유예)",
+        "description": "회원 탈퇴를 요청합니다 (30일 유예 후 영구 삭제).\n\n**요청 필드:**\n- `reason` (선택): 탈퇴 사유\n- `detail` (선택): 상세 설명, 최대 500자\n\n**동작:**\n1. 계정 상태 DEACTIVATED, permanentDeleteAt = 30일 후\n2. 활성 교환일기/채팅 전부 TERMINATED\n3. Redis 키 정리 (RT, 매칭 캐시, AI 캐시)\n4. 30일 내 POST /api/users/me/restore로 복구 가능\n5. 30일 후 배치에서 영구 삭제 (일기 익명화, 개인정보 삭제)",
+        "operationId": "deactivate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeactivateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "deactivatedAt": "2026-04-30T10:00:00",
+                    "permanentDeleteAt": "2026-05-30T10:00:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/appeals": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "제재 이의신청",
+        "description": "제재에 대한 이의신청을 접수합니다.\n\n**요청 필드:**\n- `sanctionId` (필수): 제재 이력 ID\n- `reason` (필수): 이의신청 사유, 20~500자\n\n**조건:** SUSPEND_7D 또는 SUSPEND_30D 상태만 가능\n- BANNED(영구 정지)는 이의신청 불가\n- 동일 제재에 중복 이의신청 불가\n\n**에러:** AP001(정지 상태 아님), AP002(이미 접수됨), AP003(영구 정지)",
+        "operationId": "createAppeal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppealRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "appealId": 1,
+                    "status": "PENDING",
+                    "submittedAt": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "제재 상태 아님",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "AP002",
+                  "message": "제재 상태가 아닙니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이미 이의신청 존재",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "AP001",
+                  "message": "이미 처리 중인 이의신청이 있습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/ideal-type/keywords": {
+      "post": {
+        "tags": [
+          "IdealType"
+        ],
+        "summary": "이상형 키워드 설정 (최대 3개)",
+        "description": "온보딩 2단계 — 이상형 키워드를 설정합니다.\n\n**요청 필드:**\n- `keywordIds`: 키워드 ID 배열 (최소 1개, 최대 3개)\n\n**동작:**\n- onboardingStep 1 → 2 변경\n- ROLE_GUEST → ROLE_USER 승격 (이후 모든 인증 API 사용 가능)\n- 이미 설정된 키워드가 있으면 덮어쓰기\n\n**에러:** U004(3~5개 선택 필요), U005(존재하지 않는 키워드 ID)",
+        "operationId": "saveIdealKeywords",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdealTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "키워드 초과",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "U004",
+                  "message": "이상형 키워드는 최대 3개까지 설정할 수 있습니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/support/inquiry": {
+      "post": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "1:1 문의 접수",
+        "description": "1:1 문의를 접수합니다.\n\n**요청 필드:**\n- `category` (필수): 문의 카테고리 (예: \"기능 문의\", \"버그 제보\")\n- `title` (필수): 제목\n- `content` (필수): 문의 내용\n\n**제한:** 진행 중(PENDING) 문의 5건 초과 시 SP001 에러\n\n**에러:** SP001(5건 초과)",
+        "operationId": "createInquiry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InquiryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "inquiryId": 1,
+                    "createdAt": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "문의 제한 초과",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "SP001",
+                  "message": "문의는 최대 5건까지 접수할 수 있습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/{diaryId}/skip": {
+      "post": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "추천 일기 넘기기 (7일 재추천 제외)",
+        "description": "해당 일기를 넘깁니다.\n\n**동작:** matching_pass 테이블에 기록, 7일간 탐색에서 재노출 방지",
+        "operationId": "skip",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/{diaryId}/select": {
+      "post": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "교환일기 신청 (상대 일기 선택)",
+        "description": "해당 일기 작성자에게 교환일기를 신청합니다.\n\n**동작:**\n- PENDING 상태로 매칭 요청 생성\n- 상대방에게 MATCHING_REQUEST 알림 발송\n- **양방향 매칭 감지:** 상대도 나에게 신청했으면 자동으로 매칭 성사 → 교환일기 방 생성\n- 비관적 락(PESSIMISTIC_WRITE)으로 Race Condition 방지\n\n**에러:** M001(이미 신청), M003(차단), M004(일기 없음), M005(교환 3건 만석)",
+        "operationId": "select",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "신청 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "matchingId": 1,
+                    "isMatched": false,
+                    "roomUuid": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "자기 일기에 신청 (M005)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "M005",
+                  "message": "본인의 일기에는 매칭 요청할 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이미 신청한 일기 (M001)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "M001",
+                  "message": "이미 매칭 요청을 보낸 상대입니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/requests/{matchingId}/accept": {
+      "post": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "매칭 요청 수락 (매칭 성사)",
+        "description": "매칭 요청을 수락합니다.\n\n**동작:**\n- 매칭 상태 PENDING → MATCHED\n- 교환일기 방 자동 생성 (roomUuid 반환)\n- 양측에게 MATCHING_MATCHED 알림 발송\n\n**에러:** M006(존재하지 않는 매칭)",
+        "operationId": "acceptRequest",
+        "parameters": [
+          {
+            "name": "matchingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "수락 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "matchingId": 1,
+                    "isMatched": true,
+                    "roomUuid": "bf48bc80-4773-4d50-a293-3ba5f7cea823"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "매칭 없음 (M006)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "M006",
+                  "message": "매칭 요청을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/next-step": {
+      "post": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "관계 확장 방향 선택 (CHAT/CONTINUE)",
+        "description": "> 📱 **화면:** 7.1 관계 확장 선택 — 채팅/교환 계속/종료 선택 제출",
+        "operationId": "chooseNextStep",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextStepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "status": "CHAT_CREATED",
+                    "roundNumber": 1,
+                    "chatRoomUuid": "bf48bc80-4773-4d50-a293-3ba5f7cea823",
+                    "newExpiresAt": null
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이미 선택 완료",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "NS002",
+                  "message": "이미 관계 확장을 선택했습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/diaries": {
+      "post": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "교환일기 릴레이 작성 (턴 기반)",
+        "description": "> 📱 **화면:** 6.2 릴레이 교환 일기 작성 — [제출] 버튼 탭 (내 턴 일기 작성 완료)",
+        "operationId": "writeDiary",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExchangeDiaryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "작성 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "201",
+                  "message": "CREATED",
+                  "data": {
+                    "diaryId": 5,
+                    "nextTurn": 3,
+                    "isCompleted": false,
+                    "chatUnlocked": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "턴 순서 오류",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "ER003",
+                  "message": "현재 내 차례가 아닙니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이미 완료된 교환",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "ER004",
+                  "message": "이미 완료된 교환일기입니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/diaries/{diaryId}/reaction": {
+      "post": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "교환일기 감정 리액션 등록",
+        "description": "> 📱 **화면:** 6.3 상대방 일기 수신 / 읽기 전용 + 리액션 — 리액션 버튼 탭",
+        "operationId": "addReaction",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "리액션 오류",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "ER005",
+                  "message": "유효하지 않은 리액션입니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/chat": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "채팅방 생성 (교환일기 완료 후)",
+        "description": "> 📱 **화면:** 7.1 관계 확장 선택 — 양측 [채팅] 선택 → 채팅방 자동 생성",
+        "operationId": "createChatRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "생성 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "201",
+                  "message": "CREATED",
+                  "data": {
+                    "chatRoomId": 1
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "이미 생성됨",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "CR008",
+                  "message": "이미 채팅방이 생성되었습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries": {
+      "get": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "내 일기 목록 조회 (최신순, 페이징)",
+        "description": "내 일기 목록을 페이징 조회합니다.\n\n**쿼리 파라미터:**\n- `page` (기본 0): 페이지 번호\n- `size` (기본 10): 페이지 크기\n\n**응답:** 최신순 정렬, 각 일기의 analysisStatus(PENDING/COMPLETED/FAILED) 포함",
+        "operationId": "getDiaries",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaries": [
+                      {
+                        "diaryId": 1,
+                        "contentPreview": "오늘은...",
+                        "createdAt": "2026-04-30",
+                        "summary": "AI 요약",
+                        "category": "DAILY"
+                      }
+                    ],
+                    "totalCount": 1,
+                    "hasNext": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "일기 작성 (일 1회, 200~1000자)",
+        "description": "새 일기를 작성합니다. 하루 1회만 가능.\n\n**요청 필드:**\n- `content` (필수): 일기 본문, 200~1000자\n- `visibility` (필수): `PRIVATE`(나만 보기) 또는 `EXCHANGE_ONLY`(교환 대상 노출)\n- `topicId` (선택): 수요일 주제 ID (GET /api/diaries/weekly-topic에서 조회)\n\n**동작:**\n1. 하루 1회 제한 검증 (D001)\n2. 금칙어/URL 검열 — 차단 시 SC001\n3. XSS 이스케이프 후 저장\n4. AI 분석 비동기 발행 (RabbitMQ → FastAPI)\n5. analysisStatus=PENDING으로 반환\n\n**에러:** D001(일 1회), D002(글자 수), SC001(부적절한 내용)",
+        "operationId": "createDiary",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiaryCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "작성 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "201",
+                  "message": "CREATED",
+                  "data": {
+                    "diaryId": 1,
+                    "status": "PRIVATE",
+                    "analysisStatus": "PENDING"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "금칙어 포함 (SC001)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "SC001",
+                  "message": "부적절한 표현이 포함되어 있습니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "오늘 이미 작성함 (D001)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "D001",
+                  "message": "오늘 이미 일기를 작성했습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/draft": {
+      "post": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "임시저장 생성 (최대 3건)",
+        "description": "일기를 임시저장합니다.\n\n**요청 필드:**\n- `content` (필수): 임시저장할 본문 (글자 수 제한 없음)\n\n**동작:** 최대 3건 제한, 초과 시 D008 에러\n\n**에러:** D008(3건 초과)",
+        "operationId": "createDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "저장 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "draftId": 1,
+                    "savedAt": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "임시저장 3건 초과 (D008)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "D008",
+                  "message": "임시저장은 최대 3건까지 가능합니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/dev/register": {
+      "post": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "신규 유저 생성",
+        "description": "ROLE_GUEST 상태로 테스트 유저 생성 후 토큰 반환. 약관 동의 → 프로필 등록 → 이상형 설정 온보딩 플로우 테스트용.",
+        "operationId": "registerTestUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/exchange-rooms/{roomId}/set-deadline": {
+      "post": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "교환일기 마감 시간 변경",
+        "description": "교환일기 방의 deadlineAt을 현재 시각 + N분으로 변경. 만료 테스트용.",
+        "operationId": "setDeadline",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "minutes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/exchange-rooms/{roomId}/force-complete": {
+      "post": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "교환일기 강제 완주",
+        "description": "교환일기 방을 4턴 완료 상태로 강제 변경. 관계 확장 테스트용.",
+        "operationId": "forceComplete",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/ai/simulate/{diaryId}": {
+      "post": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "AI 분석 결과 시뮬레이션",
+        "description": "FastAPI 없이 AI 파이프라인 테스트. RabbitMQ에 Mock 분석 결과 발행 → 2~3초 후 diary_keywords에 감정/성격/라이프스타일/톤 태그 저장.",
+        "operationId": "simulateAiResult",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consent": {
+      "post": {
+        "tags": [
+          "Consent"
+        ],
+        "summary": "약관 동의 등록",
+        "description": "AI 분석 동의를 등록합니다.\n\n**요청 필드:**\n- `consentType` (필수): `AI_ANALYSIS` 또는 `AI_DATA_USAGE` (다른 값은 C001 에러)\n\n**동작:**\n- ai_consent_log 테이블에 GRANTED 이력 INSERT (Append-Only)\n- AI_ANALYSIS: 일기 성격/감정 분석 동의\n- AI_DATA_USAGE: 매칭 유사도 계산 등 데이터 활용 동의\n- 온보딩 시 두 타입 모두 등록 필요\n\n**주의:** USER_TERMS, AI_TERMS는 더 이상 사용하지 않습니다.",
+        "operationId": "registerConsent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "AI 분석 동의 철회",
+        "description": "AI 분석 동의를 철회합니다.\n\n**동작:**\n- AI_ANALYSIS, AI_DATA_USAGE 모두 REVOKED 이력 INSERT\n- Redis AI 캐시 삭제\n- 철회 후 AI 분석/매칭 추천이 중단됨\n- 동의 이력이 없으면 AC001 에러\n\n**에러:** AC001(동의 이력 없음)",
+        "operationId": "revokeConsent",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "동의 내역 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "AC001",
+                  "message": "AI 분석 동의 내역이 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat-rooms/{roomId}/messages": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "메시지 이력 조회 (커서 기반)",
+        "description": "채팅 메시지 이력을 커서 기반으로 조회합니다.\n\n**쿼리 파라미터:**\n- `cursor` (선택): 이전 응답의 nextCursor\n- `size` (기본 20): 한 번에 가져올 개수\n\n**응답:** 최신순 정렬, sequenceId로 순서 보장\n- type: TEXT(일반), SYSTEM(시스템 메시지)",
+        "operationId": "getMessages",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "messages": [
+                      {
+                        "messageId": 1,
+                        "senderId": 5,
+                        "content": "안녕하세요!",
+                        "type": "TEXT",
+                        "createdAt": "2026-04-30T10:00:00",
+                        "isRead": true,
+                        "isFlagged": false,
+                        "sequenceId": 1
+                      }
+                    ],
+                    "hasMore": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "메시지 전송 (REST)",
+        "description": "채팅 메시지를 전송합니다 (REST 방식).\n\n**요청 필드:**\n- `content` (필수): 메시지 본문\n- `type` (필수): `TEXT`\n\n**동작:**\n1. 금칙어 검열 (SC001)\n2. XSS 이스케이프\n3. Redis INCR로 sequenceId 발급\n4. 외부 연락처(전화번호/카카오/인스타) 탐지 → 플래그 처리\n\n**실시간 채팅:** WebSocket STOMP (`/ws/chat` 연결, `/topic/chat/{roomId}` 구독)\n\n**에러:** SC001(부적절한 내용), CR007(종료된 채팅방)",
+        "operationId": "sendMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "messageId": 5,
+                    "senderId": 1,
+                    "content": "안녕!",
+                    "type": "TEXT",
+                    "createdAt": "2026-04-30T10:00:00",
+                    "isRead": false,
+                    "isFlagged": false,
+                    "sequenceId": 5
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "금칙어 포함",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "SC001",
+                  "message": "금칙어가 포함되어 있습니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "채팅방 접근 불가",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "CR007",
+                  "message": "채팅방에 접근할 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat-rooms/{roomId}/leave": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "채팅방 나가기",
+        "description": "채팅방을 나갑니다.\n\n**동작:**\n- 시스템 메시지 생성 (\"상대방이 채팅방을 나갔습니다\")\n- 채팅방 상태 CHAT_LEFT로 변경\n- WebSocket으로 상대에게 브로드캐스트\n\n**에러:** CR002(참여자 아님)",
+        "operationId": "leaveChatRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "채팅방 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "CR002",
+                  "message": "채팅방을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat-rooms/{roomId}/couple-request": {
+      "post": {
+        "tags": [
+          "Couple"
+        ],
+        "summary": "커플 요청 전송",
+        "description": "채팅 상대에게 커플 요청을 보냅니다.\n\n**동작:**\n- 72시간 만료 타이머 시작\n- 24시간/48시간 후 리마인드 알림 발송 예약\n- 이미 요청 보냈으면 CR003\n\n**에러:** CR003(이미 요청), CR004(이미 커플)",
+        "operationId": "sendCoupleRequest",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "requestId": 1,
+                    "expiresAt": "2026-05-03T10:00:00",
+                    "reminderSchedule": [
+                      "2026-05-02T10:00:00",
+                      "2026-05-03T10:00:00"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "중복 요청",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "CR003",
+                  "message": "이미 커플 요청이 존재합니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat-rooms/{roomId}/couple-reject": {
+      "post": {
+        "tags": [
+          "Couple"
+        ],
+        "summary": "커플 요청 거절",
+        "description": "커플 요청을 거절합니다.\n\n**에러:** CR005(요청 없음)",
+        "operationId": "rejectCoupleRequest",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "요청 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "CR005",
+                  "message": "커플 요청을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat-rooms/{roomId}/couple-accept": {
+      "post": {
+        "tags": [
+          "Couple"
+        ],
+        "summary": "커플 요청 수락",
+        "description": "커플 요청을 수락합니다.\n\n**동작:**\n- Couple 엔티티 생성 (confirmedAt 기록)\n- ChatRoom 상태 COUPLE_CONFIRMED로 변경\n- 양측에게 COUPLE_CONFIRMED 알림\n\n**에러:** CR005(요청 없음), CR006(만료)",
+        "operationId": "acceptCoupleRequest",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "coupleId": 1,
+                    "status": "ACTIVE"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "요청 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "CR005",
+                  "message": "커플 요청을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/social": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "소셜 로그인/회원가입",
+        "description": "카카오 소셜 로그인 또는 회원가입을 처리합니다.\n\n**요청 필드:**\n- `provider`: 소셜 로그인 제공자 (현재 `KAKAO`만 지원)\n- `accessToken`: 카카오 SDK에서 발급받은 Access Token\n\n**동작:**\n- 기존 회원이면 JWT 토큰 쌍(AT+RT) 발급\n- 신규 회원이면 자동 회원가입 후 `ROLE_GUEST`로 생성, `isNewUser=true` 반환\n- 탈퇴 유예 중인 계정이면 `restoreToken` 포함 (POST /api/auth/restore로 복구 가능)\n\n**에러:** A009(소셜 인증 실패), A010(지원하지 않는 provider)",
+        "operationId": "socialLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "201",
+                  "message": "CREATED",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ...",
+                    "isNewUser": true,
+                    "userId": 1,
+                    "onboardingCompleted": false,
+                    "onboardingStep": 0,
+                    "accountStatus": "ACTIVE",
+                    "restoreToken": null
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "소셜 인증 실패",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "A009",
+                  "message": "소셜 인증에 실패했습니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/restore": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "탈퇴 유예 계정 복구",
+        "description": "탈퇴 유예 기간(30일) 내 계정을 복구합니다.\n\n**요청 필드:**\n- `restoreToken`: 소셜 로그인 응답에서 받은 복구 토큰\n\n**동작:**\n- DEACTIVATED → ACTIVE 상태 전환\n- deactivatedAt, permanentDeleteAt 초기화\n- 30일 초과 시 A012 에러 (영구 삭제됨)\n\n**에러:** A011(유효하지 않은 복구 토큰), A012(복구 기간 만료)",
+        "operationId": "restoreAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ...",
+                    "userId": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "복구 불가",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "A012",
+                  "message": "복구할 수 없는 계정입니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "토큰 갱신 (Refresh Token Rotation)",
+        "description": "Access Token 만료 시 Refresh Token으로 새 토큰 쌍을 발급합니다.\n\n**요청 필드:**\n- `refreshToken`: 이전에 발급받은 Refresh Token\n\n**동작:**\n- Refresh Token Rotation 적용 — 기존 RT는 즉시 무효화되고 새 RT 발급\n- 무효화된 RT로 재요청 시 A005 에러\n\n**에러:** A005(유효하지 않은 RT)",
+        "operationId": "refreshToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "accessToken": "eyJ...",
+                    "refreshToken": "eyJ..."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "유효하지 않은 리프레시 토큰",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "A005",
+                  "message": "유효하지 않은 리프레시 토큰입니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "로그아웃",
+        "description": "현재 세션을 로그아웃합니다.\n\n**동작:**\n- Access Token을 Redis 블랙리스트에 등록 (만료 시간까지 유지)\n- Refresh Token을 Redis에서 삭제\n- 블랙리스트에 등록된 AT로 API 호출 시 A006 에러\n\n**헤더:** `Authorization: Bearer {accessToken}` 필수",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "만료된 토큰",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "A002",
+                  "message": "만료된 토큰입니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/settings": {
+      "patch": {
+        "tags": [
+          "MyPage"
+        ],
+        "summary": "앱 설정 수정 (변경할 필드만 전송)",
+        "description": "앱 설정을 수정합니다.\n\n**수정 가능 필드:**\n- `darkMode`: 다크모드 (true/false)\n- `language`: 언어 (ko/en)\n- `ageFilterRange`: 탐색 연령 필터 범위 (정수, 예: 5 = ±5세)\n\n변경할 필드만 보내면 됩니다 (Upsert).",
+        "operationId": "updateSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserSettingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "darkMode": false,
+                    "language": "ko",
+                    "ageFilterRange": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/profile": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "프로필 부분 수정 (닉네임/지역/학교)",
+        "description": "프로필 정보를 수정합니다.\n\n**수정 가능 필드:** nickname, realName, sido, sigungu, school\n- 닉네임 변경은 30일 쿨다운 적용 (lastNicknameChangedAt 기준)\n- 변경할 필드만 보내면 됨 (PATCH 방식)\n\n**에러:** U001(닉네임 중복), U006(30일 쿨다운)",
+        "operationId": "updateProfile_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "닉네임 변경 쿨다운",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "U006",
+                  "message": "닉네임은 30일에 한 번만 변경할 수 있습니다.",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/notification-settings": {
+      "get": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "알림 설정 조회",
+        "description": "알림 설정을 조회합니다.\n\n**6종 카테고리:**\n- matching: 매칭 관련 알림\n- diaryTurn: 교환일기 턴 알림\n- chat: 채팅 메시지 알림\n- aiAnalysis: AI 분석 완료 알림\n- couple: 커플 관련 알림\n- system: 시스템 알림",
+        "operationId": "getSettings",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "matching": true,
+                    "diaryTurn": true,
+                    "chat": true,
+                    "aiAnalysis": true,
+                    "couple": true,
+                    "system": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "알림 설정 수정 (변경할 필드만 전송)",
+        "description": "알림 설정을 수정합니다. 변경할 항목만 보내면 됩니다 (PATCH).\n\n**요청 예시:** `{\"matching\":false}` → matching만 끔, 나머지 유지",
+        "operationId": "updateSettings_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSettingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "matching": true,
+                    "diaryTurn": true,
+                    "chat": true,
+                    "aiAnalysis": true,
+                    "couple": true,
+                    "system": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/{notificationId}/read": {
+      "patch": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "알림 읽음 처리",
+        "description": "> 📱 **화면:** 10.2 알림 센터 — 알림 카드 탭 (개별 읽음 처리)",
+        "operationId": "markAsRead",
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "알림 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "N001",
+                  "message": "알림을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/read-all": {
+      "patch": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "전체 알림 읽음 처리",
+        "description": "모든 미읽음 알림을 한 번에 읽음 처리합니다.\n\n**응답:** updatedCount(읽음 처리된 개수), readAt(처리 시간)",
+        "operationId": "markAllAsRead",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "updatedCount": 3,
+                    "readAt": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/{diaryId}": {
+      "get": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "일기 상세 조회 (AI 분석 결과 포함)",
+        "description": "일기 상세를 조회합니다. 본인 일기만 조회 가능.\n\n**응답 포함:**\n- 일기 본문, 날짜, visibility\n- AI 분석 태그 (analysisStatus=COMPLETED인 경우)\n  - emotionTags: 감정 태그 배열 (label+score)\n  - lifestyleTags: 라이프스타일 태그 배열\n  - toneTags: 톤 태그 배열\n\n**에러:** D004(존재하지 않음), D005(본인 일기 아님)",
+        "operationId": "getDiary",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaryId": 1,
+                    "content": "오늘은...",
+                    "createdAt": "2026-04-30",
+                    "summary": "AI 요약",
+                    "category": "DAILY",
+                    "emotionTags": [
+                      {
+                        "label": "편안함",
+                        "score": 0.8
+                      }
+                    ],
+                    "lifestyleTags": [
+                      {
+                        "label": "미식",
+                        "score": 0.7
+                      }
+                    ],
+                    "toneTags": [
+                      {
+                        "label": "솔직한",
+                        "score": 0.6
+                      }
+                    ],
+                    "isEditable": true
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "일기 없음 (D004)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "D004",
+                  "message": "일기를 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "당일 일기 수정 (AI 재분석 트리거)",
+        "description": "당일 작성한 일기만 수정할 수 있습니다.\n\n**요청 필드:**\n- `content` (필수): 수정할 본문, 200~1000자\n\n**동작:**\n- 수정 전/후 본문을 diary_edit_logs에 기록\n- 기존 AI 키워드 삭제 + AI 캐시 무효화\n- AI 재분석 자동 발행 (analysisStatus → PENDING)\n\n**에러:** D004, D005(본인 아님), D006(당일 아님)",
+        "operationId": "updateDiary",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiaryUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "수정 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaryId": 1,
+                    "content": "수정된 내용...",
+                    "updatedAt": "2026-04-30T10:00:00",
+                    "summary": "수정된 요약"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "수정 횟수 초과 (D006)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "D006",
+                  "message": "일기 수정 횟수를 초과했습니다",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "당일 일기만 수정 가능 (D005)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "D005",
+                  "message": "당일 작성한 일기만 수정할 수 있습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "내 프로필 조회",
+        "description": "현재 로그인한 사용자의 전체 프로필을 조회합니다.\n\n**응답 포함 정보:**\n- 기본 정보: userId, nickname, birthDate, gender, sido, sigungu, school\n- 온보딩 상태: onboardingCompleted, onboardingStep (0=미시작, 1=프로필완료, 2=키워드완료)\n- 이상형 키워드: idealKeywords 배열\n- 계정 상태: accountStatus (ACTIVE/DEACTIVATED/SUSPEND_7D/SUSPEND_30D/BANNED)\n- 제재 정보: suspensionReason, suspendedUntil, canAppeal",
+        "operationId": "getMyProfile",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "userId": 1,
+                    "nickname": "따뜻한별빛",
+                    "birthDate": "2000-01-01",
+                    "gender": "MALE",
+                    "sido": "서울특별시",
+                    "sigungu": "강남구",
+                    "onboardingCompleted": true,
+                    "accountStatus": "ACTIVE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/history/exchange-rooms": {
+      "get": {
+        "tags": [
+          "MyPage"
+        ],
+        "summary": "교환일기 히스토리 (완료/만료/종료, 커서 페이징)",
+        "description": "교환일기 히스토리를 커서 기반으로 조회합니다.\n\n**포함 상태:** COMPLETED, CHAT_CONNECTED, EXPIRED, TERMINATED, ARCHIVED\n\n**쿼리 파라미터:** cursor, size(기본 10)",
+        "operationId": "getExchangeHistory",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "rooms": [
+                      {
+                        "roomUuid": "bf48bc80-...",
+                        "partnerNickname": "미소짓는풍선",
+                        "status": "COMPLETED",
+                        "totalDiaryCount": 4
+                      }
+                    ],
+                    "hasMore": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/history/chat-rooms": {
+      "get": {
+        "tags": [
+          "MyPage"
+        ],
+        "summary": "채팅 히스토리 (종료된 채팅방, 커서 페이징)",
+        "description": "채팅 히스토리를 커서 기반으로 조회합니다.\n\n**쿼리 파라미터:** cursor, size(기본 10)",
+        "operationId": "getChatHistory",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "chatRooms": [
+                      {
+                        "chatRoomId": 1,
+                        "partnerNickname": "미소짓는풍선",
+                        "status": "TERMINATED"
+                      }
+                    ],
+                    "hasMore": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/block-list": {
+      "get": {
+        "tags": [
+          "Report/Block"
+        ],
+        "summary": "차단 목록 조회 (커서 기반 페이징)",
+        "description": "차단한 사용자 목록을 커서 기반으로 조회합니다.\n\n**쿼리 파라미터:**\n- `cursor` (선택): 이전 nextCursor\n- `size` (기본 20)\n\n**응답:** blockId, userId, nickname, blockedAt",
+        "operationId": "getBlockList",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "blocks": [
+                      {
+                        "blockId": 1,
+                        "userId": 5,
+                        "nickname": "차단된유저",
+                        "blockedAt": "2026-04-30T10:00:00"
+                      }
+                    ],
+                    "nextCursor": null,
+                    "hasMore": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/me/ai-profile": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "AI 성격 분석 결과 조회",
+        "description": "AI 성격 분석 결과를 조회합니다.\n\n**활성화 조건:** 일기 3편 이상 작성\n- 3편 미만이면 analysisAvailable=false\n\n**응답 (활성화 시):**\n- dominantPersonalityTags: 관계성향 상위 3개 (예: \"안정 추구\", \"공감 우선\")\n- dominantEmotionTags: 감정 상위 3개\n- dominantLifestyleTags: 라이프스타일 상위 3개\n- dominantToneTags: 글쓰기 톤 상위 3개\n\n각 태그는 diary_keywords 테이블의 빈도 집계 기반",
+        "operationId": "getAiProfile",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "analysisAvailable": true,
+                    "diaryCount": 5,
+                    "dominantPersonalityTags": [
+                      "안정 추구",
+                      "공감 우선"
+                    ],
+                    "dominantEmotionTags": [
+                      "편안함"
+                    ],
+                    "dominantLifestyleTags": [
+                      "미식"
+                    ],
+                    "dominantToneTags": [
+                      "솔직한"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/ideal-type/keyword-list": {
+      "get": {
+        "tags": [
+          "IdealType"
+        ],
+        "summary": "이상형 키워드 목록 조회 (공개 API)",
+        "description": "이상형 키워드 마스터 목록을 조회합니다. 인증 불필요.\n\n**응답:**\n- 10개 키워드, category별 그룹핑 (RELATIONSHIP, EMOTION, LIFESTYLE 등)\n- 온보딩 2단계에서 키워드 선택 UI에 사용\n- id 값을 POST /api/users/ideal-type/keywords에 전달",
+        "operationId": "getKeywordList",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "keywords": [
+                      {
+                        "id": 1,
+                        "label": "안정적인 사람",
+                        "category": "RELATIONSHIP"
+                      },
+                      {
+                        "id": 2,
+                        "label": "긍정적인 사람",
+                        "category": "EMOTION"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tutorials/pages": {
+      "get": {
+        "tags": [
+          "Tutorial"
+        ],
+        "summary": "튜토리얼 페이지 목록 조회",
+        "description": "튜토리얼 페이지 목록을 순서대로 조회합니다.\n\n**응답:** pageOrder 오름차순 정렬된 페이지 배열\n- 각 페이지: pageOrder, title, content, imageUrl",
+        "operationId": "getTutorialPages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": [
+                    {
+                      "pageOrder": 1,
+                      "title": "환영합니다"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/system/version": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "앱 버전 확인",
+        "description": "앱 최소/최신 버전을 확인합니다. 인증 불필요.\n\n**응답:**\n- `updateType`: FORCE_UPDATE(강제), RECOMMEND_UPDATE(권장), NONE(최신)\n- `latestVersion`: 최신 버전\n- `storeUrl`: 스토어 링크 (업데이트 필요 시)",
+        "operationId": "checkVersion",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "AOS"
+            }
+          },
+          {
+            "name": "currentVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "updateType": "NONE",
+                    "latestVersion": "1.0.0"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/support/inquiries": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "내 문의 목록 조회",
+        "description": "내 문의 목록을 조회합니다.\n\n**응답:** inquiryId, category, title, status(PENDING/ANSWERED/CLOSED), createdAt",
+        "operationId": "getMyInquiries",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": [
+                    {
+                      "inquiryId": 1,
+                      "category": "기능 문의",
+                      "title": "테스트",
+                      "status": "PENDING"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/support/inquiries/{inquiryId}": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "문의 상세 조회",
+        "description": "> 📱 **화면:** 14.3 FAQ 및 고객센터 — 문의 목록에서 카드 탭 (상세 진입)",
+        "operationId": "getInquiryDetail",
+        "parameters": [
+          {
+            "name": "inquiryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "inquiryId": 1,
+                    "category": "기능 문의",
+                    "title": "테스트 문의",
+                    "content": "문의 내용...",
+                    "answer": null,
+                    "status": "PENDING"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "문의 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "SP003",
+                  "message": "문의를 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "알림 목록 조회 (최근 30일)",
+        "description": "최근 30일간의 알림 목록을 조회합니다.\n\n**알림 타입:**\n- MATCHING_REQUEST: 매칭 신청 알림\n- MATCHING_MATCHED: 매칭 성사 알림\n- EXCHANGE_TURN: 교환일기 턴 알림\n- COUPLE_CONFIRMED: 커플 확정 알림\n- AI_ANALYSIS_DONE: AI 분석 완료 알림\n- SYSTEM: 시스템 공지 등",
+        "operationId": "getNotifications",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "notifications": [
+                      {
+                        "notificationId": 1,
+                        "type": "MATCHING_REQUEST",
+                        "title": "매칭 요청",
+                        "body": "미소짓는풍선님이 교환을 신청했어요",
+                        "isRead": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notices": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "공지사항 목록 조회",
+        "description": "공지사항 목록을 조회합니다.\n\n**정렬:** 고정(isPinned=true) 우선, 그 다음 최신순\n- Redis 1시간 캐싱 적용",
+        "operationId": "getNotices",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": [
+                    {
+                      "id": 1,
+                      "title": "서비스 업데이트",
+                      "category": "GENERAL",
+                      "priority": "NORMAL",
+                      "isPinned": true,
+                      "publishedAt": "2026-04-30T10:00:00"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notices/{noticeId}": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "공지사항 상세 조회",
+        "description": "> 📱 **화면:** 14.2 앱 공지사항 — 공지 카드 탭 (상세 진입)",
+        "operationId": "getNoticeDetail",
+        "parameters": [
+          {
+            "name": "noticeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "id": 1,
+                    "title": "서비스 업데이트",
+                    "content": "업데이트 내용...",
+                    "category": "SERVICE",
+                    "priority": "HIGH",
+                    "isPinned": true,
+                    "publishedAt": "2026-04-30T10:00:00",
+                    "viewCount": 42
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "공지 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "NT001",
+                  "message": "공지사항을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notices/unread-count": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "미읽음 공지사항 수 조회",
+        "description": "미읽음 공지 수를 반환합니다.\n\n**동작:** lastReadNoticeId 기준으로 그 이후 공지 수 카운트",
+        "operationId": "getUnreadCount",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": 5
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/notices/banners": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "활성 배너 조회 (최대 5개)",
+        "description": "현재 활성화된 배너를 조회합니다. 최대 5개.\n\n**응답:** id, title, imageUrl, linkType(NONE/INTERNAL/EXTERNAL), linkUrl\n- Redis 1시간 캐싱",
+        "operationId": "getActiveBanners",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": [
+                    {
+                      "id": 1,
+                      "title": "이벤트",
+                      "imageUrl": "https://...",
+                      "linkType": "NONE"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/requests": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "받은 매칭 요청 목록 조회",
+        "description": "받은 매칭 요청 목록을 조회합니다.\n\n**응답:** fromUserNickname, fromUserAgeGroup, 일기 미리보기 포함\n- matchingId를 POST /api/matching/requests/{matchingId}/accept에 전달",
+        "operationId": "getReceivedRequests",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": [
+                    {
+                      "matchingId": 1,
+                      "fromUserId": 5,
+                      "fromUserNickname": "미소짓는풍선",
+                      "fromUserAgeGroup": "20대",
+                      "diaryId": 10,
+                      "diaryPreview": "오늘은...",
+                      "requestedAt": "2026-04-30T10:00:00"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/recommendations": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "AI 기반 추천 일기 목록",
+        "description": "AI 기반 매칭 추천 목록을 조회합니다.\n\n**동작:**\n- KoSimCSE 유사도 기반 상위 추천\n- Redis 캐시(24h) → 만료 시 stale 캐시 폴백 (빈 응답 방지)\n- AI FastAPI 미연동 시 AI003 에러\n\n**에러:** AI003(AI 매칭 서버 오류)",
+        "operationId": "getRecommendations",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "generatedAt": "2026-04-30T10:00:00",
+                    "source": "FRESH",
+                    "items": [
+                      {
+                        "userId": 5,
+                        "matchingScore": 0.85,
+                        "breakdown": {
+                          "keywordOverlap": 1,
+                          "cosineSimilarity": 0.85
+                        },
+                        "summary": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/recommendations/{diaryId}/preview": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "추천 일기 블라인드 미리보기",
+        "description": "추천 일기의 블라인드 미리보기를 조회합니다.\n\n**응답:**\n- 본문 앞 100자만 노출\n- 유사도 배지: 0.7이상 \"잘 맞을 것 같아요\", 0.5~0.7 \"공통점이 있어요\"",
+        "operationId": "preview_1",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaryId": 10,
+                    "preview": "오늘은...",
+                    "similarityBadge": "잘 맞을 것 같아요"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/matching/lifestyle-report": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "라이프스타일 분석 리포트",
+        "description": "내 라이프스타일 리포트를 조회합니다.\n\n**활성화 조건:** 일기 5편 이상 작성\n- 5편 미만이면 analysisAvailable=false, requiredDiaryCount=5 반환\n\n**응답 (활성화 시):**\n- 활동 히트맵, 요일별 패턴, 감정 그래프, 평균 일기 길이 등",
+        "operationId": "lifestyleReport",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "analysisAvailable": true,
+                    "requiredDiaryCount": 5,
+                    "currentDiaryCount": 7
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "헬스체크"
+        ],
+        "summary": "서버 헬스체크",
+        "description": "서버 상태를 확인합니다. 인증 불필요.\n\n**응답:** status(\"ok\"), profile(\"local\"/\"prod\"), timestamp(ISO 8601)",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "status": "ok",
+                    "profile": "prod",
+                    "timestamp": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/faq": {
+      "get": {
+        "tags": [
+          "Notice/Support"
+        ],
+        "summary": "FAQ 목록 조회",
+        "description": "FAQ 목록을 조회합니다.\n\n**응답:** id, question, answer, category\n- Redis 1시간 캐싱",
+        "operationId": "getFaqs",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": [
+                    {
+                      "id": 1,
+                      "category": "MATCHING",
+                      "question": "교환일기는 어떻게 시작하나요?",
+                      "answer": "일기를 작성하고..."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms": {
+      "get": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "교환일기 방 목록 조회",
+        "description": "현재 진행 중인 교환일기 방 목록을 조회합니다.\n\n**응답:** ACTIVE 상태 방만 반환\n- roomId(숫자), roomUuid, partnerNickname, status, currentTurn, isMyTurn, lastDiaryAt, deadline\n- isMyTurn=true이면 내가 작성할 차례",
+        "operationId": "getRooms",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "rooms": [
+                      {
+                        "roomId": 1,
+                        "roomUuid": "bf48bc80-...",
+                        "partnerNickname": "미소짓는풍선",
+                        "status": "ACTIVE",
+                        "currentTurn": 2,
+                        "isMyTurn": true,
+                        "lastDiaryAt": "2026-05-01T08:00:00",
+                        "deadline": "2026-05-03T08:00:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}": {
+      "get": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "교환일기 방 상세 조회",
+        "description": "> 📱 **화면:** 6.1 교환방 상세 / 6.2 릴레이 작성 / 6.4 제한시간 리마인드 — 방 카드 탭 / 폴링",
+        "operationId": "getRoomDetail",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "roomId": 1,
+                    "partner": {
+                      "userId": 5,
+                      "nickname": "미소짓는풍선"
+                    },
+                    "status": "ACTIVE",
+                    "currentTurn": 2,
+                    "isMyTurn": true,
+                    "diaries": [
+                      {
+                        "diaryId": 1,
+                        "authorId": 5,
+                        "content": "오늘은...",
+                        "reaction": null,
+                        "readAt": null,
+                        "createdAt": "2026-05-01T08:00:00",
+                        "turnNumber": 1
+                      }
+                    ],
+                    "deadline": "2026-05-03T08:00:00",
+                    "roundNumber": 1,
+                    "nextStepRequired": false,
+                    "nextStepDeadline": null
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "교환방 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "ER001",
+                  "message": "교환일기 방을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/report": {
+      "get": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "교환일기 공통점 리포트 조회",
+        "description": "> 📱 **화면:** 6.5 교환 완료 후 '우리의 공통점' AI 리포트 — 교환 2회 왕복 완료 후 진입",
+        "operationId": "getReport",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "reportId": 1,
+                    "status": "COMPLETED",
+                    "commonKeywords": [
+                      "여행",
+                      "음식"
+                    ],
+                    "emotionSimilarity": 0.78,
+                    "lifestylePatterns": [
+                      "아침형",
+                      "운동 습관"
+                    ],
+                    "writingTempA": "따뜻한",
+                    "writingTempB": "차분한",
+                    "aiDescription": "두 분은 여행과 음식에 대한 공통 관심사가 있습니다.",
+                    "generatedAt": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "분석 중",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "ER007",
+                  "message": "리포트 분석 중입니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/next-step/status": {
+      "get": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "관계 확장 선택 상태 조회",
+        "description": "> 📱 **화면:** 7.1 관계 확장 선택 — 결과 대기 폴링 (양측 선택 조회)",
+        "operationId": "getNextStepStatus",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "myChoice": "CHAT",
+                    "partnerChose": false,
+                    "roundNumber": 1,
+                    "status": "WAITING",
+                    "chatRoomUuid": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/exchange-rooms/{roomId}/diaries/{diaryId}": {
+      "get": {
+        "tags": [
+          "Exchange"
+        ],
+        "summary": "교환일기 개별 열람 (읽음 처리)",
+        "description": "> 📱 **화면:** 6.2 릴레이 작성 (이전 일기 조회) / 6.3 상대방 일기 수신 (푸시 → 방 진입)",
+        "operationId": "readDiary",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaryId": 1,
+                    "content": "오늘은...",
+                    "authorId": 5,
+                    "reaction": "HEART",
+                    "readAt": "2026-04-30T10:00:00"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "교환일기 없음",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "ER002",
+                  "message": "교환일기를 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/{diaryId}/detail": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "탐색 일기 상세 조회 (유사도 배지 + 작성자 다른 일기)",
+        "description": "탐색에서 선택한 일기의 상세를 조회합니다.\n\n**응답 포함:**\n- 일기 전체 본문\n- 작성자 성격 키워드 (AI 분석 결과)\n- 작성자의 다른 공개 일기 미리보기 (최대 3건)\n- 유사도 점수/배지 (AI 연동 시)",
+        "operationId": "diaryDetail",
+        "parameters": [
+          {
+            "name": "diaryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaryId": 10,
+                    "authorId": 5,
+                    "ageGroupLabel": "20대",
+                    "content": "오늘은...",
+                    "summary": "AI 요약",
+                    "keywords": [
+                      "안정 추구"
+                    ],
+                    "moodTags": [
+                      "감성적인"
+                    ],
+                    "category": "DAILY",
+                    "createdAt": "2026-04-30T10:00:00",
+                    "similarityBadge": null,
+                    "otherDiariesPreview": [
+                      {
+                        "diaryId": 11,
+                        "summary": "요약",
+                        "createdAt": "2026-04-29T10:00:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/weekly-topic": {
+      "get": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "이번 주 수요일 주제 조회",
+        "description": "이번 주 수요일 주제를 조회합니다. 인증 불필요.\n\n**응답:**\n- 수요일이면 `isActive=true`, 다른 요일이면 `false`\n- 주제가 등록되지 않은 주에는 topicId/title이 null\n- topicId를 POST /api/diaries의 topicId 파라미터로 전달하면 주제 일기로 작성",
+        "operationId": "getWeeklyTopic",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "topicId": 1,
+                    "title": "가장 기억에 남는 여행지는?",
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/diaries/today": {
+      "get": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "당일 일기 작성 여부 확인",
+        "description": "오늘 일기를 이미 작성했는지 확인합니다.\n\n**응답:**\n- `exists`: true이면 오늘 이미 작성함\n- `diaryId`: 작성한 일기 ID (exists=false이면 null)\n- 일기 작성 버튼 활성화/비활성화 판단에 사용",
+        "operationId": "checkTodayDiary",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "exists": false,
+                    "diaryId": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/explore": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "일기 탐색 (커서 기반 페이징, 정렬/필터 지원)",
+        "description": "다른 사용자의 일기를 탐색합니다 (카드 스와이프 UI).\n\n**쿼리 파라미터:**\n- `cursor` (선택): 이전 응답의 nextCursor 값\n- `size` (기본 10): 한 번에 가져올 개수\n- `sort` (기본 latest): `latest`(최신순)\n- `sido` (선택): 시/도 필터 (예: \"서울특별시\")\n- `sigungu` (선택): 시/군/구 필터\n- `ageGroup` (선택): 연령대 필터 (예: \"20대\")\n- `keywordFilter` (기본 false): true이면 내 이상형 키워드와 일치하는 일기만\n\n**필터링 규칙:**\n- 이성 일기만 노출\n- 차단한/된 유저 제외\n- 이미 매칭 신청/넘긴 일기 제외\n- 교환일기 3건 만석 유저 제외\n\n**응답 카드:** authorId, ageGroupLabel, sido, sigungu, previewContent(앞 200자), personalityKeywords(상위3), moodTags",
+        "operationId": "explore",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "latest"
+            }
+          },
+          {
+            "name": "sido",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sigungu",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ageGroup",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keywordFilter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "diaries": [
+                      {
+                        "diaryId": 10,
+                        "authorId": 5,
+                        "ageGroupLabel": "20대",
+                        "sido": "서울특별시",
+                        "sigungu": "강남구",
+                        "previewContent": "오늘은...",
+                        "category": "DAILY",
+                        "createdAt": "2026-04-30T10:00:00",
+                        "similarityBadge": null,
+                        "personalityKeywords": [
+                          "안정 추구"
+                        ],
+                        "moodTags": [
+                          "감성적인"
+                        ]
+                      }
+                    ],
+                    "nextCursor": 9,
+                    "hasNext": true,
+                    "guidanceMessage": null,
+                    "currentSort": "latest"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/drafts": {
+      "get": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "임시저장 목록 조회",
+        "description": "임시저장된 일기 목록을 조회합니다.\n\n**응답:** 최대 3건, 최신순 정렬\n- draftId, content(전체 본문), savedAt\n- Redis 캐시(24h) + DB 폴백",
+        "operationId": "getDrafts",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "drafts": [
+                      {
+                        "draftId": 1,
+                        "content": "임시저장",
+                        "savedAt": "2026-04-30T10:00:00"
+                      }
+                    ],
+                    "totalCount": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/dev/token": {
+      "get": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "테스트 토큰 발급",
+        "description": "카카오 로그인 없이 userId로 JWT accessToken 발급. 프론트 개발/테스트용.",
+        "operationId": "issueTestToken",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "토큰을 발급할 사용자 ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/redis/user/{userId}": {
+      "get": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "유저별 Redis 캐시 현황",
+        "description": "userId 기준으로 AI 분석, 매칭 추천, RT, 채팅 시퀀스 등 관련 캐시 키 현황 조회.",
+        "operationId": "redisUserKeys",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/redis/summary": {
+      "get": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "Redis 캐시 전체 요약",
+        "description": "캐시 카테고리별 키 수 + 총 키 수 조회. AI:DIARY, MATCHING:RECO, MSG:SEQ 등 카테고리로 분류.",
+        "operationId": "redisSummary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/redis/keys": {
+      "get": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "Redis 키 패턴 검색",
+        "description": "패턴으로 Redis 키 검색. 예: AI:DIARY:*, MATCHING:RECO:*, MSG:SEQ:*",
+        "operationId": "redisKeys",
+        "parameters": [
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dev/redis/get": {
+      "get": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "Redis 키 조회",
+        "description": "특정 키의 값 + TTL(초) 조회.",
+        "operationId": "redisGet",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat-rooms": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "채팅방 목록 조회",
+        "description": "채팅방 목록을 조회합니다.\n\n**응답:** ACTIVE 상태 방 목록\n- partnerNickname, lastMessage, lastMessageAt, unreadCount 포함\n- N+1 최적화 적용 (JOIN FETCH + 배치 쿼리)",
+        "operationId": "getChatRooms",
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "chatRooms": [
+                      {
+                        "chatRoomId": 1,
+                        "partnerNickname": "미소짓는풍선",
+                        "status": "ACTIVE",
+                        "lastMessage": "안녕하세요!",
+                        "unreadCount": 2
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/chat-rooms/{roomId}/profile": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "채팅 상대방 프로필 조회",
+        "description": "채팅 상대방의 프로필을 조회합니다.\n\n**응답:** nickname, gender, birthDate, sido, personalityTags(AI 분석 성격 태그 상위 3개)",
+        "operationId": "getPartnerProfile",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": {
+                    "userId": 2,
+                    "nickname": "미소짓는풍선",
+                    "birthDate": "2000-05-15",
+                    "gender": "FEMALE",
+                    "sido": "서울특별시",
+                    "personalityTags": [
+                      "안정 추구"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/diaries/draft/{draftId}": {
+      "delete": {
+        "tags": [
+          "Diary"
+        ],
+        "summary": "임시저장 삭제",
+        "description": "임시저장을 삭제합니다.\n\n**에러:** D007(존재하지 않음)",
+        "operationId": "deleteDraft",
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 성공",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "200",
+                  "message": "OK",
+                  "data": null
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "임시저장 없음 (D007)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": "D007",
+                  "message": "임시저장을 찾을 수 없습니다",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/dev/redis/delete": {
+      "delete": {
+        "tags": [
+          "Dev"
+        ],
+        "summary": "Redis 키 삭제",
+        "description": "특정 Redis 키 삭제. 캐시 무효화 테스트용.",
+        "operationId": "redisDelete",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "IdealTypeRequest": {
+        "type": "object",
+        "description": "이상형 키워드 설정 요청",
+        "properties": {
+          "keywordIds": {
+            "type": "array",
+            "description": "선택한 키워드 ID 목록 (최대 3개)",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "maxItems": 3,
+            "minItems": 0
+          }
+        },
+        "required": [
+          "keywordIds"
+        ]
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "description": "공통 API 응답",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "ReportRequest": {
+        "type": "object",
+        "description": "사용자 신고 요청",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "신고 사유",
+            "enum": [
+              "PROFANITY",
+              "SEXUAL",
+              "PERSONAL_INFO",
+              "SPAM",
+              "IMPERSONATION",
+              "HARASSMENT",
+              "OTHER"
+            ],
+            "example": "HARASSMENT"
+          },
+          "contextType": {
+            "type": "string",
+            "description": "맥락 타입 (신고 발생 위치)",
+            "enum": [
+              "DIARY",
+              "EXCHANGE_DIARY",
+              "CHAT_MESSAGE",
+              "PROFILE"
+            ],
+            "example": "CHAT_MESSAGE"
+          },
+          "contextId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "맥락 ID (해당 콘텐츠 ID)",
+            "example": 42
+          },
+          "detail": {
+            "type": "string",
+            "description": "상세 설명 (최대 500자)",
+            "example": "부적절한 메시지를 반복 전송",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ApiResponseTutorialCompleteResponse": {
+        "type": "object",
+        "description": "공통 API 응답",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorialCompleteResponse"
+          }
+        }
+      },
+      "TutorialCompleteResponse": {
+        "type": "object",
+        "description": "튜토리얼 완료 응답",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "완료 처리 성공 여부"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "완료 시각"
+          }
+        }
+      },
+      "ProfileRequest": {
+        "type": "object",
+        "description": "프로필 등록 요청 (온보딩 1단계)",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "description": "닉네임 (랜덤 생성 API에서 발급받은 값)",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "realName": {
+            "type": "string",
+            "description": "실명 (2~10자, 한글)",
+            "maxLength": 10,
+            "minLength": 2,
+            "pattern": "^[가-힣]+$"
+          },
+          "birthDate": {
+            "type": "string",
+            "description": "생년월일 (YYYY-MM-DD)",
+            "example": "2000-01-01"
+          },
+          "gender": {
+            "type": "string",
+            "description": "성별 (MALE/FEMALE)"
+          },
+          "sido": {
+            "type": "string",
+            "description": "시/도",
+            "example": "서울특별시",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "sigungu": {
+            "type": "string",
+            "description": "시/군/구",
+            "example": "강남구",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "school": {
+            "type": "string",
+            "description": "학교명 (선택)",
+            "maxLength": 50,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "birthDate",
+          "gender",
+          "nickname",
+          "realName",
+          "sido",
+          "sigungu"
+        ]
+      },
+      "FcmTokenRequest": {
+        "type": "object",
+        "description": "FCM 토큰 등록/갱신 요청",
+        "properties": {
+          "fcmToken": {
+            "type": "string",
+            "description": "FCM 디바이스 토큰"
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "디바이스 타입 (AOS/IOS)",
+            "example": "AOS"
+          }
+        },
+        "required": [
+          "deviceType",
+          "fcmToken"
+        ]
+      },
+      "DeactivateRequest": {
+        "type": "object",
+        "description": "회원 탈퇴 요청",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "탈퇴 사유",
+            "example": "SERVICE_DISSATISFACTION"
+          },
+          "detail": {
+            "type": "string",
+            "description": "상세 설명 (최대 500자)",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        }
+      },
+      "AppealRequest": {
+        "type": "object",
+        "description": "제재 이의신청 요청",
+        "properties": {
+          "sanctionId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "이의신청 대상 제재 ID"
+          },
+          "reason": {
+            "type": "string",
+            "description": "이의신청 사유 (20~500자)",
+            "maxLength": 500,
+            "minLength": 20
+          }
+        },
+        "required": [
+          "reason",
+          "sanctionId"
+        ]
+      },
+      "InquiryRequest": {
+        "type": "object",
+        "description": "1:1 문의 접수 요청",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "문의 카테고리",
+            "example": "ACCOUNT"
+          },
+          "title": {
+            "type": "string",
+            "description": "문의 제목 (5~100자)",
+            "maxLength": 100,
+            "minLength": 5
+          },
+          "content": {
+            "type": "string",
+            "description": "문의 내용 (10~2000자)",
+            "maxLength": 2000,
+            "minLength": 10
+          }
+        },
+        "required": [
+          "category",
+          "content",
+          "title"
+        ]
+      },
+      "NextStepRequest": {
+        "type": "object",
+        "properties": {
+          "choice": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "choice"
+        ]
+      },
+      "ExchangeDiaryRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 200
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "ReactionRequest": {
+        "type": "object",
+        "properties": {
+          "reaction": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reaction"
+        ]
+      },
+      "DiaryCreateRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 200
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "EXCHANGE_ONLY"
+            ]
+          },
+          "topicId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "content",
+          "visibility"
+        ]
+      },
+      "DraftCreateRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 0
+          },
+          "topicId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "ConsentRequest": {
+        "type": "object",
+        "description": "AI 분석 동의 등록 요청",
+        "properties": {
+          "consentType": {
+            "type": "string",
+            "description": "동의 유형 (AI_ANALYSIS / AI_DATA_USAGE)",
+            "example": "AI_ANALYSIS"
+          },
+          "validType": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "consentType"
+        ]
+      },
+      "ChatMessageRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "type"
+        ]
+      },
+      "SocialLoginRequest": {
+        "type": "object",
+        "description": "소셜 로그인 요청",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "소셜 provider",
+            "example": "KAKAO"
+          },
+          "socialToken": {
+            "type": "string",
+            "description": "소셜 accessToken"
+          },
+          "email": {
+            "type": "string",
+            "description": "이메일 (카카오 동의 시)"
+          }
+        },
+        "required": [
+          "provider",
+          "socialToken"
+        ]
+      },
+      "RestoreRequest": {
+        "type": "object",
+        "description": "계정 복구 요청",
+        "properties": {
+          "restoreToken": {
+            "type": "string",
+            "description": "복구 토큰 (소셜 로그인 응답에서 받은 값)"
+          }
+        },
+        "required": [
+          "restoreToken"
+        ]
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "description": "토큰 갱신 요청",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh Token"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "UserSettingRequest": {
+        "type": "object",
+        "description": "앱 설정 수정 요청 (null인 필드는 변경하지 않음)",
+        "properties": {
+          "darkMode": {
+            "type": "boolean",
+            "description": "다크모드"
+          },
+          "language": {
+            "type": "string",
+            "description": "언어 (ko/en)"
+          },
+          "ageFilterRange": {
+            "type": "integer",
+            "format": "int32",
+            "description": "연령 필터 범위 (1~10)"
+          }
+        }
+      },
+      "ProfileUpdateRequest": {
+        "type": "object",
+        "description": "프로필 부분 수정 요청",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "description": "닉네임 (변경 시에만 포함, 30일 1회 제한)",
+            "maxLength": 10,
+            "minLength": 2
+          },
+          "sido": {
+            "type": "string",
+            "description": "시/도",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "sigungu": {
+            "type": "string",
+            "description": "시/군/구",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "school": {
+            "type": "string",
+            "description": "학교명",
+            "maxLength": 50,
+            "minLength": 0
+          }
+        }
+      },
+      "NotificationSettingRequest": {
+        "type": "object",
+        "description": "알림 설정 수정 요청 (null인 필드는 변경하지 않음)",
+        "properties": {
+          "matching": {
+            "type": "boolean",
+            "description": "매칭 알림"
+          },
+          "diaryTurn": {
+            "type": "boolean",
+            "description": "교환일기 차례 알림"
+          },
+          "chat": {
+            "type": "boolean",
+            "description": "채팅 알림"
+          },
+          "aiAnalysis": {
+            "type": "boolean",
+            "description": "AI 분석 완료 알림"
+          },
+          "couple": {
+            "type": "boolean",
+            "description": "커플 관련 알림"
+          },
+          "system": {
+            "type": "boolean",
+            "description": "공지/시스템 알림"
+          }
+        }
+      },
+      "DiaryUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 200
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "ApiResponseListTutorialPageResponse": {
+        "type": "object",
+        "description": "공통 API 응답",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorialPageResponse"
+            }
+          }
+        }
+      },
+      "TutorialPageResponse": {
+        "type": "object",
+        "description": "튜토리얼 페이지 정보",
+        "properties": {
+          "pageOrder": {
+            "type": "integer",
+            "format": "int32",
+            "description": "페이지 순서"
+          },
+          "title": {
+            "type": "string",
+            "description": "페이지 제목"
+          },
+          "body": {
+            "type": "string",
+            "description": "페이지 본문"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "페이지 이미지 URL"
+          }
+        }
+      },
+      "ApiResponseAppVersionResponse": {
+        "type": "object",
+        "description": "공통 API 응답",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AppVersionResponse"
+          }
+        }
+      },
+      "AppVersionResponse": {
+        "type": "object",
+        "description": "앱 버전 확인 응답",
+        "properties": {
+          "updateType": {
+            "type": "string",
+            "description": "업데이트 타입 (NONE/RECOMMENDED/FORCE)"
+          },
+          "latestVersion": {
+            "type": "string",
+            "description": "최신 버전"
+          },
+          "storeUrl": {
+            "type": "string",
+            "description": "스토어 URL"
+          }
+        }
+      },
+      "ApiResponseHealthResponse": {
+        "type": "object",
+        "description": "공통 API 응답",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthResponse"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

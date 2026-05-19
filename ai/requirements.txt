@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+openai
+pika
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers
+sentence-transformers
+aio-pika>=9.4
+redis>=5.0
+prometheus-fastapi-instrumentator>=7.0
+structlog>=24.1
+scikit-learn>=1.4
+numpy>=1.26
+aiohttp

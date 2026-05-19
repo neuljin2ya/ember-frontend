@@ -1,0 +1,218 @@
+spring:
+  profiles:
+    active: dev
+
+  # Supabase Cloud (dev/prod 동일)
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ember}
+    username: ${DB_USERNAME:ember}
+    password: ${DB_PASSWORD:ember1234}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 100
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Flyway: DB 스키마 마이그레이션
+  flyway:
+    enabled: true
+    # 기존 Hibernate ddl-auto:update로 생성된 테이블을 베이스라인으로 처리
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+    # 실패한 마이그레이션 자동 복구 (체크섬 불일치/실패 레코드 정리)
+    repair-on-migrate: true
+
+  # RabbitMQ Listener 공통 설정 (프로파일별 host/port는 아래에서 오버라이드)
+  rabbitmq:
+    listener:
+      simple:
+        prefetch: 4
+        concurrency: 2
+        default-requeue-rejected: false
+
+server:
+  port: 8080
+
+# ── 관측성 공통 설정 (M7) ────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+    prometheus:
+      access: read_only
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        ai.diary.analyze.duration: true
+        ai.matching.calculate.duration: true
+    tags:
+      application: ember-backend
+      env: ${SPRING_PROFILES_ACTIVE:local}
+  tracing:
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+  jwt:
+    secret: ${JWT_SECRET:ember-local-dev-jwt-secret-key-must-be-at-least-256-bits-long}
+    access-expiration: 1800000
+    refresh-expiration: 604800000
+  # AI 모니터링 대시보드 외부 시스템 접속 (Phase 3B)
+  monitoring:
+    prometheus:
+      url: ${PROMETHEUS_URL:http://prometheus:9090}
+      timeout: 3s
+    rabbit-mgmt:
+      url: ${RABBITMQ_MGMT_URL:http://rabbitmq:15672}
+      username: ${RABBITMQ_MGMT_USER:guest}
+      password: ${RABBITMQ_MGMT_PASSWORD:guest}
+      timeout: 3s
+
+---
+# 로컬 개발 환경 (로컬 PostgreSQL + Swagger)
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ember
+    username: ember
+    password: ember1234
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  flyway:
+    enabled: false
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+app:
+  jwt:
+    secret: ember-local-test-secret-32bytes!
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:8080
+      - http://10.0.2.2:8080
+  monitoring:
+    prometheus:
+      url: http://localhost:9090
+    rabbit-mgmt:
+      url: http://localhost:15672
+      username: guest
+      password: guest
+
+ai:
+  service:
+    url: http://localhost:8000
+  internal-key: local-dev-key
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  override-with-generic-response: false
+
+---
+# 개발 환경 (Supabase Cloud)
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    show-sql: true
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:8080
+      - http://10.0.2.2:8080
+
+# dev 프로파일: AI 서버 URL / 내부 API 키 (환경변수 없을 시 기본값)
+ai:
+  service:
+    url: ${AI_SERVICE_URL:http://localhost:8000}
+  internal-key: ${INTERNAL_API_KEY:local-dev-key}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+---
+# 운영 환경
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  flyway:
+    enabled: false
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASS}
+
+server:
+  forward-headers-strategy: native
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - ${ADMIN_ORIGIN:}
+
+ai:
+  service:
+    url: ${AI_SERVICE_URL:http://ai:8000}
+  internal-key: ${INTERNAL_API_KEY:}
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    urls-primary-name: user-api
+  api-docs:
+    enabled: true

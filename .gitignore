@@ -1,45 +1,85 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# OS / Editor
 .DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
+Thumbs.db
+.vscode/
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Python (AI)
+__pycache__/
+*.py[cod]
+.env
+.env.local
+.venv/
+venv/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Node / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java / Spring
+*.class
+*.log
+target/
+.gradle/
+build/
+bin/
+
+# Flutter (자동 생성물 / 로컬 캐시 / 디버그용 Chrome 프로필 포함)
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
-/build/
-/coverage/
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
+**/GeneratedPluginRegistrant.m
+**/GeneratedPluginRegistrant.h
 
-# Symbolication related
-app.*.symbols
+# AI 모델 가중치 (외부 저장소에서 별도 다운로드)
+*.pt
+*.bin
+*.safetensors
+*.onnx
+*.ckpt
+*.h5
+*.pkl
+*.pth
+ai/diary_model/
+ai/**/checkpoints/
+ai/**/weights/
 
-# Obfuscation related
-app.*.map.json
+# Firebase (민감 정보)
+firebase-service-account.json
+google-services.json
+**/firebase-service-account.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Jupyter
+.ipynb_checkpoints/
+
+# Claude Code
+.claude/
+.mcp.json
+
+# Serena MCP (로컬 프로젝트 메타데이터)
+.serena/
+
+# Nginx SSL 인증서
+nginx/certs/
+
+# Misc
+*.tmp
+*.swp
+
+# 문서/명세서 (협업 레포에 푸시하지 않음, 로컬 전용 + Obsidian Vault 동기화 운영)
+docs/
+**/docs/
+*.draft.md
+
+# PEM 키(EC2 SSH 등) — 유출 방지
+*.pem
+db_dashboard.html
