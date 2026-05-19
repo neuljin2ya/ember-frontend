@@ -1,155 +1,278 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import 'api_service.dart';
+import 'ai_report_screen.dart';
+import 'text_utils.dart';
 
 class DiaryAnalysisScreen extends StatefulWidget {
-  const DiaryAnalysisScreen({super.key});
+  final int? diaryId;
+
+  const DiaryAnalysisScreen({super.key, this.diaryId});
 
   @override
   State<DiaryAnalysisScreen> createState() => _DiaryAnalysisScreenState();
 }
 
 class _DiaryAnalysisScreenState extends State<DiaryAnalysisScreen> {
-  int _dotCount = 1;
+  Map<String, dynamic>? _diary;
+  bool _isLoading = true;
   bool _isDone = false;
 
   @override
   void initState() {
     super.initState();
-    _startDotAnimation();
-
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _isDone = true);
-    });
+    _loadAnalysis();
   }
 
-  void _startDotAnimation() async {
-    while (mounted && !_isDone) {
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted || _isDone) break;
-      setState(() => _dotCount = _dotCount == 3 ? 1 : _dotCount + 1);
+  Future<void> _loadAnalysis() async {
+    if (widget.diaryId == null) {
+      setState(() => _isLoading = false);
+      return;
     }
+
+    for (var i = 0; i < 5; i++) {
+      try {
+        final data = await ApiService.getDiary(widget.diaryId!);
+        final status = data['analysisStatus']?.toString();
+        if (!mounted) return;
+        setState(() {
+          _diary = data;
+          _isDone = status == 'COMPLETED' || status == null;
+          _isLoading = false;
+        });
+        if (_isDone) return;
+      } catch (e) {
+        if (mounted) setState(() => _isLoading = false);
+      }
+      await Future.delayed(const Duration(seconds: 2));
+    }
+  }
+
+  List<String> _tags(String key) {
+    final value = _diary?[key];
+    if (value is! List) return const [];
+    return value
+        .map((tag) {
+          if (tag is Map) {
+            return tag['label'] ?? tag['name'] ?? tag['tag'] ?? '';
+          }
+          return tag;
+        })
+        .map((e) => e.toString())
+        .where((e) => e.isNotEmpty)
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final summary = decodeHtmlEntities(_diary?['summary'] ?? '');
+    final personality = _tags('personalityKeywords');
+    final emotions = _tags('emotionTags');
+    final lifestyle = _tags('lifestyleTags');
+    final tone = _tags('toneTags');
+    final hasAnalysisDetails =
+        summary.isNotEmpty ||
+        personality.isNotEmpty ||
+        emotions.isNotEmpty ||
+        lifestyle.isNotEmpty ||
+        tone.isNotEmpty;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Spacer(),
-
-              // 원
-              Container(
-                width: 139,
-                height: 139,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFE37474),
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: _isDone
-                      ? const Icon(
-                    Icons.check,
-                    color: Color(0xFFE37474),
-                    size: 60,
-                  )
-                      : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _dotCount,
-                          (i) => Padding(
-                        padding:
-                        const EdgeInsets.symmetric(horizontal: 4),
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE37474),
-                            shape: BoxShape.circle,
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE37474)),
+              )
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Center(
+                                child: Icon(
+                                  Icons.auto_awesome,
+                                  color: Color(0xFFE37474),
+                                  size: 58,
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              Center(
+                                child: Text(
+                                  _isDone ? 'AI 분석 결과' : 'AI 분석 중이에요',
+                                  style: const TextStyle(
+                                    color: Color(0xFF391713),
+                                    fontSize: 24,
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: Text(
+                                  _isDone
+                                      ? '오늘 일기에서 발견한 마음의 결이에요.'
+                                      : '분석이 조금 더 걸릴 수 있어요. 결과가 준비되면 리포트에서 다시 볼 수 있어요.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontSize: 14,
+                                    fontFamily: 'Pretendard',
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                              if (hasAnalysisDetails)
+                                const SizedBox(height: 28),
+                              if (summary.isNotEmpty)
+                                _ResultCard(title: '요약', child: Text(summary)),
+                              _TagSection(title: '성격 키워드', tags: personality),
+                              _TagSection(title: '감정', tags: emotions),
+                              _TagSection(title: '라이프스타일', tags: lifestyle),
+                              _TagSection(title: '톤', tags: tone),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  _isDone ? '일기 분석 완료' : '당신의 일기를 분석하고 있어요',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF391713),
-                    fontSize: 22,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  _isDone
-                      ? '다른 사람들과 오늘 하루를 나누러 가볼까요?'
-                      : '당신의 하루를 하나씩 살펴보고 있어요.\n글 속에 담긴 마음과 결을 분석 중입니다.\n잠시만 기다려주세요, 새로운 연결을 준비하고 있어요.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF391713),
-                    fontSize: 15,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    height: 1.56,
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              Padding(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: _isDone
-                    ? GestureDetector(
-                  onTap: () {
-                    Navigator.pushReplacementNamed(context, '/home');
-                    },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE37474),
-                      borderRadius: BorderRadius.circular(52),
-                      border:
-                      Border.all(color: const Color(0xFFE95322)),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.pushReplacementNamed(context, '/home');
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: Color(0xFFE37474)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              '홈으로',
+                              style: TextStyle(color: Color(0xFFE37474)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AiReportScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE37474),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'AI 리포트',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const Text(
-                      '시작하기',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                )
-                    : const SizedBox(height: 38),
+                  ],
+                ),
               ),
-            ],
-          ),
+      ),
+    );
+  }
+}
+
+class _ResultCard extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _ResultCard({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7F4),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: DefaultTextStyle(
+        style: const TextStyle(
+          color: Color(0xFF391713),
+          fontSize: 14,
+          fontFamily: 'Pretendard',
+          height: 1.5,
         ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TagSection extends StatelessWidget {
+  final String title;
+  final List<String> tags;
+
+  const _TagSection({required this.title, required this.tags});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tags.isEmpty) return const SizedBox.shrink();
+    return _ResultCard(
+      title: title,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: tags
+            .map(
+              (tag) => Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEFE7),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  tag,
+                  style: const TextStyle(
+                    color: Color(0xFFE37474),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }

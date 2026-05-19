@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'profile_image_picker.dart';
 import 'city_search_field.dart';
@@ -24,6 +25,34 @@ class _CreateProfileState extends State<CreateProfile> {
   int _currentPage = 0;
   String _selectedGender = 'MALE';
   DateTime? _selectedBirthDate;
+  File? _profileImage;
+
+  bool get _isFirstPageComplete =>
+      _realNameController.text.trim().isNotEmpty &&
+      _locationController.text.trim().isNotEmpty &&
+      _occupationController.text.trim().isNotEmpty &&
+      _selectedBirthDate != null &&
+      _profileImage != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _locationController.addListener(_refreshCompletionState);
+    _occupationController.addListener(_refreshCompletionState);
+    _realNameController.addListener(_refreshCompletionState);
+  }
+
+  void _refreshCompletionState() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_realNameController.text.isEmpty && widget.realName.trim().isNotEmpty) {
+      _realNameController.text = widget.realName.trim();
+    }
+  }
 
   void _nextPage() {
     _pageController.nextPage(
@@ -53,6 +82,9 @@ class _CreateProfileState extends State<CreateProfile> {
 
   @override
   void dispose() {
+    _locationController.removeListener(_refreshCompletionState);
+    _occupationController.removeListener(_refreshCompletionState);
+    _realNameController.removeListener(_refreshCompletionState);
     _pageController.dispose();
     _locationController.dispose();
     _occupationController.dispose();
@@ -62,7 +94,7 @@ class _CreateProfileState extends State<CreateProfile> {
 
   @override
   Widget build(BuildContext context) {
-    final cardHeight = MediaQuery.of(context).size.height * 0.65;
+    final cardHeight = MediaQuery.of(context).size.height * 0.50;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -70,6 +102,7 @@ class _CreateProfileState extends State<CreateProfile> {
           ? Colors.white
           : const Color(0xFFE9E9E9),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             Expanded(
@@ -100,7 +133,11 @@ class _CreateProfileState extends State<CreateProfile> {
                               const SizedBox(height: 10),
                               TextField(
                                 controller: _realNameController,
-                                style: const TextStyle(fontSize: 15, fontFamily: 'Pretendard'),
+                                onChanged: (_) => setState(() {}),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontFamily: 'Pretendard',
+                                ),
                                 decoration: InputDecoration(
                                   hintText: '실명을 입력해주세요',
                                   hintStyle: const TextStyle(
@@ -110,7 +147,10 @@ class _CreateProfileState extends State<CreateProfile> {
                                   ),
                                   filled: true,
                                   fillColor: const Color(0xFFF8F8F8),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(15),
                                     borderSide: BorderSide.none,
@@ -142,8 +182,11 @@ class _CreateProfileState extends State<CreateProfile> {
                               const SizedBox(height: 10),
                               TextField(
                                 controller: _occupationController,
+                                onChanged: (_) => setState(() {}),
                                 style: const TextStyle(
-                                    fontSize: 15, fontFamily: 'Pretendard'),
+                                  fontSize: 15,
+                                  fontFamily: 'Pretendard',
+                                ),
                                 decoration: InputDecoration(
                                   hintText: 'Enter your occupation',
                                   hintStyle: const TextStyle(
@@ -179,14 +222,20 @@ class _CreateProfileState extends State<CreateProfile> {
                                 children: [
                                   Expanded(
                                     child: GestureDetector(
-                                      onTap: () => setState(() => _selectedGender = 'MALE'),
+                                      onTap: () => setState(
+                                        () => _selectedGender = 'MALE',
+                                      ),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: _selectedGender == 'MALE'
                                               ? const Color(0xFFE37474)
                                               : const Color(0xFFF8F8F8),
-                                          borderRadius: BorderRadius.circular(15),
+                                          borderRadius: BorderRadius.circular(
+                                            15,
+                                          ),
                                         ),
                                         child: Text(
                                           '남성',
@@ -206,14 +255,20 @@ class _CreateProfileState extends State<CreateProfile> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: GestureDetector(
-                                      onTap: () => setState(() => _selectedGender = 'FEMALE'),
+                                      onTap: () => setState(
+                                        () => _selectedGender = 'FEMALE',
+                                      ),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: _selectedGender == 'FEMALE'
                                               ? const Color(0xFFE37474)
                                               : const Color(0xFFF8F8F8),
-                                          borderRadius: BorderRadius.circular(15),
+                                          borderRadius: BorderRadius.circular(
+                                            15,
+                                          ),
                                         ),
                                         child: Text(
                                           '여성',
@@ -249,7 +304,9 @@ class _CreateProfileState extends State<CreateProfile> {
                                 child: Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF8F8F8),
                                     borderRadius: BorderRadius.circular(15),
@@ -277,7 +334,11 @@ class _CreateProfileState extends State<CreateProfile> {
                         height: cardHeight,
                         middle: Column(
                           children: [
-                            ProfileImagePicker(onImageChanged: (file) {}),
+                            ProfileImagePicker(
+                              onImageChanged: (file) {
+                                setState(() => _profileImage = file);
+                              },
+                            ),
                             const SizedBox(height: 12),
                             const Text(
                               '자신의 프로필 작성하기',
@@ -301,50 +362,66 @@ class _CreateProfileState extends State<CreateProfile> {
                           ],
                         ),
                         dots: _dots(active: 0),
-                        button: _nextButton(onTap: () async {
-                          if (_selectedBirthDate == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('생년월일을 선택해주세요')),
-                            );
-                            return;
-                          }
-                          try {
-                            final nicknameData = await ApiService.generateNickname();
-                            final nickname = nicknameData['data']?['nickname'] ?? 'user';
-                            final location = _locationController.text.trim();
-                            final locationParts = location.split(' ');
-                            String sido = '';
-                            String sigungu = '';
-
-                            if (locationParts.length == 1) {
-                              // "서울특별시" → sido: 서울특별시, sigungu: 서울특별시
-                              sido = locationParts[0];
-                              sigungu = locationParts[0];
-                            } else if (locationParts.length >= 2) {
-                              // "경상남도 김해시" → sido: 경상남도, sigungu: 김해시
-                              // "제주특별자치도 제주시" → sido: 제주특별자치도, sigungu: 제주시
-                              sido = locationParts[0];
-                              sigungu = locationParts.sublist(1).join(' ');
-                            }final birthDate =
-                                '${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}';
-
-                            await ApiService.postProfile(
-                              nickname: nickname,
-                              realName: _realNameController.text.trim(),
-                              gender: _selectedGender,
-                              birthDate: birthDate,
-                              sido: sido,
-                              sigungu: sigungu,
-                            );
-                            _nextPage();
-                          } catch (e) {
-                            if (context.mounted) {
+                        button: _nextButton(
+                          enabled: _isFirstPageComplete,
+                          onTap: () async {
+                            if (!_isFirstPageComplete) return;
+                            if (_selectedBirthDate == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('오류: $e')),
+                                const SnackBar(content: Text('생년월일을 선택해주세요')),
                               );
+                              return;
                             }
-                          }
-                        }),
+                            try {
+                              final nicknameData =
+                                  await ApiService.generateNickname();
+                              final nickname =
+                                  nicknameData['data']?['nickname'] ?? 'user';
+                              final location = _locationController.text.trim();
+                              final locationParts = location.split(' ');
+                              String sido = '';
+                              String sigungu = '';
+
+                              if (locationParts.length == 1) {
+                                // "서울특별시"처럼 시/도만 선택한 경우 구/군은 비워둔다.
+                                sido = locationParts[0];
+                                sigungu = '';
+                              } else if (locationParts.length >= 2) {
+                                // "경상남도 김해시" → sido: 경상남도, sigungu: 김해시
+                                // "제주특별자치도 제주시" → sido: 제주특별자치도, sigungu: 제주시
+                                sido = locationParts[0];
+                                sigungu = locationParts.sublist(1).join(' ');
+                              }
+                              final birthDate =
+                                  '${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}';
+
+                              await ApiService.postProfile(
+                                nickname: nickname,
+                                realName: _realNameController.text.trim(),
+                                gender: _selectedGender,
+                                birthDate: birthDate,
+                                sido: sido,
+                                sigungu: sigungu,
+                              );
+                              if (_profileImage != null) {
+                                await ApiService.saveLocalProfileImagePath(
+                                  _profileImage!.path,
+                                );
+                              }
+                              await ApiService.updateProfile(
+                                realName: _realNameController.text.trim(),
+                                school: _occupationController.text.trim(),
+                              );
+                              _nextPage();
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('오류: $e')),
+                                );
+                              }
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -415,20 +492,33 @@ class _CreateProfileState extends State<CreateProfile> {
                           ],
                         ),
                         dots: _dots(active: 1),
-                        button: _nextButton(onTap: () async {
-                          final token = await ApiService.getAccessToken();
-                          print('현재 토큰: $token');
-                          try {
-                            await ApiService.postIdealTypeKeywords(_keywords);
-                            _nextPage();
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('오류: $e')),
-                              );
+                        button: _nextButton(
+                          enabled: _keywords.isNotEmpty,
+                          onTap: () async {
+                            final token = await ApiService.getAccessToken();
+                            print('현재 토큰: $token');
+                            try {
+                              if (token == null || token.isEmpty) {
+                                throw Exception('로그인 정보가 없어요. 다시 로그인해주세요.');
+                              }
+                              final success =
+                                  await ApiService.postIdealTypeKeywords(
+                                    _keywords,
+                                  );
+                              if (!mounted) return;
+                              if (!success) {
+                                throw Exception('이상형 키워드를 저장하지 못했어요.');
+                              }
+                              _nextPage();
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('오류: $e')),
+                                );
+                              }
                             }
-                          }
-                        }),
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -437,38 +527,43 @@ class _CreateProfileState extends State<CreateProfile> {
                   Column(
                     children: [
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 32),
-                          child: Column(
-                            children: const [
-                              Text(
-                                '프로필 완성!',
-                                style: TextStyle(
-                                  color: Color(0xFFE37474),
-                                  fontSize: 24,
-                                  fontFamily: 'Pretendard',
-                                  fontWeight: FontWeight.w900,
+                        child: Center(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 24,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Text(
+                                  '프로필 완성!',
+                                  style: TextStyle(
+                                    color: Color(0xFFE37474),
+                                    fontSize: 24,
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 24),
-                              Text(
-                                '당신의 프로필이 완성되었습니다.\n이제 당신을 조금 더 알아갈 준비가 되었어요.\n\n오늘 하루는 어땠나요?\n기분 좋았던 순간도, 조금 지쳤던 시간도\n있는 그대로 적어주세요.\n\n당신의 일기는 단순한 기록이 아니라\n누군가와 마음을 나누는 시작이 됩니다.\n솔직한 하루가 모여\n서로를 더 잘 이해하는 연결로 이어질 거예요.\n\n이제 오늘의 이야기를 남겨볼까요?\n교환할 일기를 작성하고,\n당신의 하루를 누군가와 나눠보세요.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Color(0xFF391713),
-                                  fontSize: 15,
-                                  fontFamily: 'Pretendard',
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.67,
+                                SizedBox(height: 24),
+                                Text(
+                                  '당신의 프로필이 완성되었습니다.\n이제 당신을 조금 더 알아갈 준비가 되었어요.\n\n오늘 하루는 어땠나요?\n기분 좋았던 순간도, 조금 지쳤던 시간도\n있는 그대로 적어주세요.\n\n당신의 일기는 단순한 기록이 아니라\n누군가와 마음을 나누는 시작이 됩니다.\n솔직한 하루가 모여\n서로를 더 잘 이해하는 연결로 이어질 거예요.\n\n이제 오늘의 이야기를 남겨볼까요?\n교환할 일기를 작성하고,\n당신의 하루를 누군가와 나눠보세요.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Color(0xFF391713),
+                                    fontSize: 15,
+                                    fontFamily: 'Pretendard',
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.67,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
+                        padding: const EdgeInsets.only(bottom: 20),
                         child: Column(
                           children: [
                             _dots(active: 2),
@@ -476,8 +571,10 @@ class _CreateProfileState extends State<CreateProfile> {
                             _nextButton(
                               onTap: () => Navigator.pushAndRemoveUntil(
                                 context,
-                                MaterialPageRoute(builder: (_) => const DiaryScreen()),
-                                    (route) => false,
+                                MaterialPageRoute(
+                                  builder: (_) => const DiaryScreen(),
+                                ),
+                                (route) => false,
                               ),
                               label: 'Get Started',
                             ),
@@ -516,15 +613,21 @@ class _CreateProfileState extends State<CreateProfile> {
     );
   }
 
-  Widget _nextButton({required VoidCallback onTap, String label = 'Next'}) {
+  Widget _nextButton({
+    required VoidCallback onTap,
+    String label = 'Next',
+    bool enabled = true,
+  }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFE37474),
+          color: enabled ? const Color(0xFFE37474) : const Color(0xFFD8D8D8),
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: const Color(0xFFE95322)),
+          border: Border.all(
+            color: enabled ? const Color(0xFFE95322) : const Color(0xFFD8D8D8),
+          ),
         ),
         child: Text(
           label,

@@ -13,27 +13,38 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 61,
       color: const Color(0xFFE37474),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          IconButton(
-            icon: Icon(Icons.home,
-                color: currentIndex == 0 ? Colors.white : Colors.white70),
-            onPressed: () => onTap(0),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.home,
+                  color: currentIndex == 0 ? Colors.white : Colors.white70,
+                ),
+                onPressed: () => onTap(0),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.favorite_border,
+                  color: currentIndex == 1 ? Colors.white : Colors.white70,
+                ),
+                onPressed: () => onTap(1),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.headset_mic_outlined,
+                  color: currentIndex == 2 ? Colors.white : Colors.white70,
+                ),
+                onPressed: () => onTap(2),
+              ),
+            ],
           ),
-          IconButton(
-            icon: Icon(Icons.favorite_border,
-                color: currentIndex == 1 ? Colors.white : Colors.white70),
-            onPressed: () => onTap(1),
-          ),
-          IconButton(
-            icon: Icon(Icons.headset_mic_outlined,
-                color: currentIndex == 2 ? Colors.white : Colors.white70),
-            onPressed: () => onTap(2),
-          ),
-        ],
+        ),
       ),
     );
   }

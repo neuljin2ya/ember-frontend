@@ -4,24 +4,42 @@ import 'chat_screen.dart';
 import 'profile_screen.dart';
 import 'diary_detail_screen.dart';
 import 'api_service.dart';
+import 'diary_screen.dart';
 import 'exchange_diary_write_screen.dart';
 import 'exchange_room_detail_screen.dart';
+import 'notification_screen.dart';
+import 'ai_report_screen.dart';
+import 'text_utils.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+  final int initialFriendsTab;
+
+  const MainScreen({
+    super.key,
+    this.initialIndex = 0,
+    this.initialFriendsTab = 0,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
-  final List<Widget> _screens = [
-    const _HomeTab(),
-    const _FriendsTab(),
-    const _EmptyTab(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const _HomeTab(),
+      _FriendsTab(initialTab: widget.initialFriendsTab),
+      const _EmptyTab(),
+    ];
+    _currentIndex = widget.initialIndex.clamp(0, _screens.length - 1).toInt();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,11 +63,13 @@ class _HomeTab extends StatelessWidget {
 }
 
 class _FriendsTab extends StatelessWidget {
-  const _FriendsTab();
+  final int initialTab;
+
+  const _FriendsTab({this.initialTab = 0});
 
   @override
   Widget build(BuildContext context) {
-    return const _FriendsBody();
+    return _FriendsBody(initialTab: initialTab);
   }
 }
 
@@ -80,6 +100,7 @@ class _HomeBodyState extends State<_HomeBody> {
   bool _filterRegion = false;
   bool _filterAge = false;
   String? _mySido;
+  String? _mySigungu;
   String? _myAgeGroup;
 
   @override
@@ -93,10 +114,26 @@ class _HomeBodyState extends State<_HomeBody> {
     try {
       final data = await ApiService.getMyProfile();
       setState(() {
-        _mySido = data['sido'];
-        _myAgeGroup = data['ageGroup'];
+        _mySido = data['sido']?.toString();
+        _mySigungu = data['sigungu']?.toString();
+        _myAgeGroup =
+            data['ageGroup']?.toString() ??
+            _ageGroupFromBirthDate(data['birthDate']);
       });
     } catch (e) {}
+  }
+
+  String? _ageGroupFromBirthDate(dynamic birthDate) {
+    final parsed = DateTime.tryParse(birthDate?.toString() ?? '');
+    if (parsed == null) return null;
+    final today = DateTime.now();
+    var age = today.year - parsed.year;
+    if (today.month < parsed.month ||
+        (today.month == parsed.month && today.day < parsed.day)) {
+      age--;
+    }
+    if (age < 20) return '10대';
+    return '${(age ~/ 10) * 10}대';
   }
 
   Future<void> _loadDiaries() async {
@@ -106,6 +143,7 @@ class _HomeBodyState extends State<_HomeBody> {
         data = await ApiService.exploreDiaries(
           isRecent: true,
           sido: _filterRegion ? _mySido : null,
+          sigungu: _filterRegion ? _mySigungu : null,
           ageGroup: _filterAge ? _myAgeGroup : null,
         );
         final diaries = data['data']?['diaries'] ?? [];
@@ -115,11 +153,7 @@ class _HomeBodyState extends State<_HomeBody> {
           _isLoading = false;
         });
       } else if (_tabIndex == 1) {
-        data = await ApiService.exploreDiaries(
-          isRecent: false,
-          sido: _filterRegion ? _mySido : null,
-          ageGroup: _filterAge ? _myAgeGroup : null,
-        );
+        data = await _loadRecommendedDiaries();
         setState(() {
           _diaries = List<Map<String, dynamic>>.from(
             data['data']?['diaries'] ?? [],
@@ -141,6 +175,106 @@ class _HomeBodyState extends State<_HomeBody> {
     }
   }
 
+  Future<Map<String, dynamic>> _loadRecommendedDiaries() async {
+    final recommendation = await ApiService.getRecommendations();
+    final payload = recommendation['data'];
+    final items = payload is Map ? payload['items'] : null;
+    if (items is List && items.isNotEmpty) {
+      final previews = <Map<String, dynamic>>[];
+      for (final item in items) {
+        if (item is! Map) continue;
+        final diaryId = item['diaryId'] ?? item['id'];
+        final parsedDiaryId = diaryId is int
+            ? diaryId
+            : int.tryParse(diaryId?.toString() ?? '');
+        if (parsedDiaryId == null) continue;
+        final preview = await ApiService.getRecommendationPreview(
+          parsedDiaryId,
+        );
+        final previewData = preview['data'];
+        if (previewData is Map) {
+          previews.add({
+            ...Map<String, dynamic>.from(previewData),
+            'diaryId': parsedDiaryId,
+            'matchingScore': item['matchingScore'],
+          });
+        }
+      }
+      if (previews.isNotEmpty) {
+        return {
+          'data': {'diaries': previews},
+        };
+      }
+    }
+
+    return ApiService.exploreDiaries(
+      isRecent: false,
+      sido: _filterRegion ? _mySido : null,
+      sigungu: _filterRegion ? _mySigungu : null,
+      ageGroup: _filterAge ? _myAgeGroup : null,
+      keywordFilter: true,
+    );
+  }
+
+  Future<void> _openDiaryWriter() async {
+    try {
+      final today = await ApiService.getTodayDiary();
+      final payload = today['data'];
+      final data = payload is Map ? Map<String, dynamic>.from(payload) : today;
+      final diaryId =
+          data['diaryId'] ??
+          data['id'] ??
+          data['todayDiaryId'] ??
+          data['diary'];
+      final hasTodayDiary =
+          data['exists'] == true ||
+          data['hasDiary'] == true ||
+          data['written'] == true ||
+          data['hasTodayDiary'] == true ||
+          (diaryId != null && diaryId.toString().isNotEmpty);
+
+      if (hasTodayDiary) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('오늘 일기는 이미 작성했어요.')));
+        final parsedDiaryId = diaryId is int
+            ? diaryId
+            : int.tryParse(diaryId?.toString() ?? '');
+        if (parsedDiaryId != null && parsedDiaryId > 0) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DiaryDetailScreen(
+                title: decodeHtmlEntities(
+                  data['summary'] ??
+                      data['contentPreview'] ??
+                      data['previewContent'] ??
+                      '',
+                ),
+                time: data['createdAt'] ?? '',
+                diaryId: parsedDiaryId,
+                showDecisionButtons: false,
+              ),
+            ),
+          );
+        }
+        if (!mounted) return;
+        setState(() => _isLoading = true);
+        await _loadDiaries();
+        return;
+      }
+    } catch (_) {
+      // 오늘 일기 조회가 실패해도 작성 화면 진입 자체는 막지 않는다.
+    }
+
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DiaryScreen()));
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    await _loadDiaries();
+  }
+
   @override
   Widget build(BuildContext context) {
     const double tabSize = 90.0;
@@ -150,16 +284,51 @@ class _HomeBodyState extends State<_HomeBody> {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text(
-                'Diary',
-                style: TextStyle(
-                  color: Color(0xFFE37474),
-                  fontSize: 30,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w700,
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 16, 14),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFFE37474),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AiReportScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Diary',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFE37474),
+                        fontSize: 30,
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Color(0xFFE37474),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -299,7 +468,6 @@ class _HomeBodyState extends State<_HomeBody> {
                       ),
                     ),
                   ),
-                  // 필터 버튼
                   Positioned(
                     top: 110,
                     right: 20,
@@ -323,9 +491,11 @@ class _HomeBodyState extends State<_HomeBody> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text(
-                                          '지역 필터링',
-                                          style: TextStyle(
+                                        Text(
+                                          _mySido == null
+                                              ? '지역 필터링'
+                                              : '내 지역 필터링 ($_mySido ${_mySigungu ?? ''})',
+                                          style: const TextStyle(
                                             color: Color(0xFFE37474),
                                             fontSize: 16,
                                             fontFamily: 'Pretendard',
@@ -351,9 +521,11 @@ class _HomeBodyState extends State<_HomeBody> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text(
-                                          '나이대 필터링',
-                                          style: TextStyle(
+                                        Text(
+                                          _myAgeGroup == null
+                                              ? '나이대 필터링'
+                                              : '내 나이대 필터링 ($_myAgeGroup)',
+                                          style: const TextStyle(
                                             color: Color(0xFFE37474),
                                             fontSize: 16,
                                             fontFamily: 'Pretendard',
@@ -423,23 +595,34 @@ class _HomeBodyState extends State<_HomeBody> {
                             ),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                            padding: EdgeInsets.fromLTRB(
+                              24,
+                              8,
+                              24,
+                              _tabIndex == 2 ? 92 : 24,
+                            ),
                             itemCount: _diaries.length,
                             itemBuilder: (context, index) {
                               final diary = _diaries[index];
                               return _DiaryItem(
                                 title: () {
                                   if (_tabIndex == 2) {
-                                    return diary['summary'] ??
-                                        diary['contentPreview'] ??
-                                        '내용 없음';
+                                    return decodeHtmlEntities(
+                                      diary['summary'] ??
+                                          diary['contentPreview'] ??
+                                          '내용 없음',
+                                    );
                                   }
                                   final content =
-                                      diary['previewContent'] as String?;
+                                      (diary['previewContent'] ??
+                                              diary['preview'] ??
+                                              diary['summary'])
+                                          ?.toString();
                                   if (content != null) {
-                                    return content.length > 30
-                                        ? '${content.substring(0, 30)}...'
-                                        : content;
+                                    final decoded = decodeHtmlEntities(content);
+                                    return decoded.length > 30
+                                        ? '${decoded.substring(0, 30)}...'
+                                        : decoded;
                                   }
                                   return '내용 없음';
                                 }(),
@@ -455,11 +638,12 @@ class _HomeBodyState extends State<_HomeBody> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => DiaryDetailScreen(
-                                        title:
-                                            diary['previewContent'] ??
-                                            diary['summary'] ??
-                                            diary['contentPreview'] ??
-                                            '',
+                                        title: decodeHtmlEntities(
+                                          diary['previewContent'] ??
+                                              diary['summary'] ??
+                                              diary['contentPreview'] ??
+                                              '',
+                                        ),
                                         time:
                                             diary['nickname'] ??
                                             diary['createdAt'] ??
@@ -477,6 +661,37 @@ class _HomeBodyState extends State<_HomeBody> {
                             },
                           ),
                   ),
+                  if (_tabIndex == 2)
+                    Positioned(
+                      bottom: 20,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: ElevatedButton.icon(
+                          onPressed: _openDiaryWriter,
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('오늘 일기 쓰기'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFFE37474),
+                            elevation: 8,
+                            shadowColor: Colors.black26,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 22,
+                              vertical: 13,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -548,14 +763,16 @@ class _DiaryItem extends StatelessWidget {
 // ────────────────────────────────────────────
 
 class _FriendsBody extends StatefulWidget {
-  const _FriendsBody();
+  final int initialTab;
+
+  const _FriendsBody({this.initialTab = 0});
 
   @override
   State<_FriendsBody> createState() => _FriendsBodyState();
 }
 
 class _FriendsBodyState extends State<_FriendsBody> {
-  int _tabIndex = 0; // 0: Diary, 1: Message, 2: Request
+  late int _tabIndex; // 0: Diary, 1: Message, 2: Request
 
   List<Map<String, dynamic>> _friends = [];
   bool _isLoadingFriends = true;
@@ -569,6 +786,7 @@ class _FriendsBodyState extends State<_FriendsBody> {
   @override
   void initState() {
     super.initState();
+    _tabIndex = widget.initialTab.clamp(0, 2).toInt();
     _loadExchangeRooms();
   }
 
@@ -614,6 +832,36 @@ class _FriendsBodyState extends State<_FriendsBody> {
     }
   }
 
+  Future<void> _endExchangeRoom(Map<String, dynamic> room) async {
+    final roomId = room['roomId'] is int
+        ? room['roomId'] as int
+        : int.tryParse(room['roomId']?.toString() ?? '') ?? 0;
+    if (roomId == 0) return;
+    final success = await ApiService.endExchangeRoom(roomId);
+    if (!mounted) return;
+    if (success) {
+      await _loadExchangeRooms();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(success ? '선택을 보냈어요' : '선택을 보낼 수 없어요')),
+    );
+  }
+
+  Future<void> _leaveChatRoom(Map<String, dynamic> room) async {
+    final roomId = room['chatRoomId'] is int
+        ? room['chatRoomId'] as int
+        : int.tryParse(room['chatRoomId']?.toString() ?? '') ?? 0;
+    if (roomId == 0) return;
+    final success = await ApiService.leaveChatRoom(roomId);
+    if (!mounted) return;
+    if (success) {
+      await _loadExchangeRooms();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(success ? '채팅방을 나갔어요' : '채팅방을 나갈 수 없어요')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -621,16 +869,38 @@ class _FriendsBodyState extends State<_FriendsBody> {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text(
-                'Friends',
-                style: TextStyle(
-                  color: Color(0xFFF8F8F8),
-                  fontSize: 28,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w700,
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 16, 12),
+              child: Row(
+                children: [
+                  const SizedBox(width: 44),
+                  const Expanded(
+                    child: Text(
+                      'Friends',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFF8F8F8),
+                        fontSize: 28,
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      color: Color(0xFFF8F8F8),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -734,7 +1004,7 @@ class _FriendsBodyState extends State<_FriendsBody> {
                                           ),
                                         ),
                                         title: const Text(
-                                          '교환일기를 종료하시겠습니까?',
+                                          '관계 선택을 보낼까요?',
                                           style: TextStyle(
                                             color: Color(0xFF111827),
                                             fontSize: 16,
@@ -746,8 +1016,10 @@ class _FriendsBodyState extends State<_FriendsBody> {
                                             width: double.infinity,
                                             height: 52,
                                             child: ElevatedButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
+                                              onPressed: () async {
+                                                Navigator.pop(context);
+                                                await _endExchangeRoom(f);
+                                              },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: const Color(
                                                   0xFFA1ACC3,
@@ -758,7 +1030,7 @@ class _FriendsBodyState extends State<_FriendsBody> {
                                                 ),
                                               ),
                                               child: const Text(
-                                                '끝내기',
+                                                '계속 선택',
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 16,
@@ -791,6 +1063,8 @@ class _FriendsBodyState extends State<_FriendsBody> {
                                   name: msg['partnerNickname'] ?? '알 수 없음',
                                   preview: msg['lastMessage'] ?? '',
                                   isNew: (msg['unreadCount'] ?? 0) > 0,
+                                  trailingLabel: '나가기',
+                                  onTrailingTap: () => _leaveChatRoom(msg),
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -818,27 +1092,38 @@ class _FriendsBodyState extends State<_FriendsBody> {
                               ),
                               itemBuilder: (context, index) {
                                 final request = _requests[index];
+                                final preview =
+                                    request['diaryPreview'] ??
+                                    request['preview'] ??
+                                    request['previewContent'] ??
+                                    request['contentPreview'] ??
+                                    request['diaryTitle'] ??
+                                    '';
+                                final rawKeywords =
+                                    request['keywords'] ??
+                                    request['personalityKeywords'] ??
+                                    request['moodTags'] ??
+                                    [];
+                                final keywords = rawKeywords is List
+                                    ? rawKeywords
+                                          .map((e) => e.toString())
+                                          .where((e) => e.isNotEmpty)
+                                          .toList()
+                                    : <String>[];
                                 return _MessageItem(
                                   name:
                                       request['fromUserNickname'] ??
                                       request['nickname'] ??
                                       request['senderNickname'] ??
                                       '알 수 없음',
-                                  preview:
-                                      request['diaryPreview'] ??
-                                      request['preview'] ??
-                                      request['diaryTitle'] ??
-                                      '',
+                                  preview: decodeHtmlEntities(preview),
                                   isNew: true,
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => DiaryDetailScreen(
-                                          title:
-                                              request['diaryPreview'] ??
-                                              request['preview'] ??
-                                              '',
+                                          title: decodeHtmlEntities(preview),
                                           time:
                                               request['fromUserAgeGroup'] ??
                                               request['ageGroup'] ??
@@ -853,9 +1138,18 @@ class _FriendsBodyState extends State<_FriendsBody> {
                                               request['matchingId'] ??
                                               request['id'] ??
                                               0,
+                                          initialContent: decodeHtmlEntities(
+                                            preview,
+                                          ),
+                                          initialKeywords: keywords,
                                         ),
                                       ),
-                                    ).then((_) => _loadExchangeRooms());
+                                    ).then((accepted) {
+                                      if (accepted == true) {
+                                        setState(() => _tabIndex = 0);
+                                      }
+                                      _loadExchangeRooms();
+                                    });
                                   },
                                 );
                               },
@@ -1020,7 +1314,7 @@ class _FriendItem extends StatelessWidget {
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: const Text(
-                            '끝내기',
+                            '계속',
                             style: TextStyle(
                               color: Color(0xFFE37474),
                               fontSize: 12,
@@ -1045,11 +1339,15 @@ class _MessageItem extends StatelessWidget {
   final String name, preview;
   final bool isNew;
   final VoidCallback onTap;
+  final String? trailingLabel;
+  final VoidCallback? onTrailingTap;
   const _MessageItem({
     required this.name,
     required this.preview,
     required this.isNew,
     required this.onTap,
+    this.trailingLabel,
+    this.onTrailingTap,
   });
 
   @override
@@ -1100,7 +1398,20 @@ class _MessageItem extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFF391713)),
+            if (trailingLabel != null)
+              TextButton(
+                onPressed: onTrailingTap,
+                child: Text(
+                  trailingLabel!,
+                  style: const TextStyle(
+                    color: Color(0xFFE37474),
+                    fontSize: 12,
+                    fontFamily: 'Pretendard',
+                  ),
+                ),
+              )
+            else
+              const Icon(Icons.chevron_right, color: Color(0xFF391713)),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'api_service.dart';
 
 const List<Map<String, dynamic>> keywordList = [
   {'id': 1, 'label': '안정적인 사람'},
@@ -15,20 +16,74 @@ const List<Map<String, dynamic>> keywordList = [
 
 class KeywordSelector extends StatefulWidget {
   final ValueChanged<List<int>>? onChanged;
+  final List<int> initialSelectedIds;
 
-  const KeywordSelector({super.key, this.onChanged});
+  const KeywordSelector({
+    super.key,
+    this.onChanged,
+    this.initialSelectedIds = const [],
+  });
 
   @override
   State<KeywordSelector> createState() => _KeywordSelectorState();
 }
 
 class _KeywordSelectorState extends State<KeywordSelector> {
+  List<Map<String, dynamic>> _options = keywordList;
   final List<Map<String, dynamic>> _selected = [];
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
   List<Map<String, dynamic>> get _available =>
-      keywordList.where((k) => !_selected.any((s) => s['id'] == k['id'])).toList();
+      _options.where((k) => !_selected.any((s) => s['id'] == k['id'])).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSelectedFromIds(widget.initialSelectedIds);
+    _loadOptions();
+  }
+
+  @override
+  void didUpdateWidget(covariant KeywordSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSelectedIds.join(',') !=
+        widget.initialSelectedIds.join(',')) {
+      _syncSelectedFromIds(widget.initialSelectedIds);
+    }
+  }
+
+  Future<void> _loadOptions() async {
+    try {
+      final options = await ApiService.getIdealTypeKeywordOptions();
+      if (!mounted || options.isEmpty) return;
+      setState(() {
+        _options = options;
+        _syncSelectedFromIds(widget.initialSelectedIds, notify: false);
+      });
+    } catch (_) {}
+  }
+
+  void _syncSelectedFromIds(List<int> ids, {bool notify = false}) {
+    _selected
+      ..clear()
+      ..addAll(
+        ids
+            .map(
+              (id) => _options.firstWhere(
+                (keyword) => keyword['id'] == id,
+                orElse: () => keywordList.firstWhere(
+                  (keyword) => keyword['id'] == id,
+                  orElse: () => {'id': id, 'label': '키워드 $id'},
+                ),
+              ),
+            )
+            .take(3),
+      );
+    if (notify) {
+      widget.onChanged?.call(_selected.map((k) => k['id'] as int).toList());
+    }
+  }
 
   void _toggleDropdown() {
     if (_overlayEntry != null) {
@@ -139,7 +194,10 @@ class _KeywordSelectorState extends State<KeywordSelector> {
               runSpacing: 8,
               children: _selected.map((keyword) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -163,7 +221,11 @@ class _KeywordSelectorState extends State<KeywordSelector> {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () => _remove(keyword),
-                        child: const Icon(Icons.close, size: 14, color: Color(0xFF4C5C6B)),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: Color(0xFF4C5C6B),
+                        ),
                       ),
                     ],
                   ),

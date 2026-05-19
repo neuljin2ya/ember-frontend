@@ -12,9 +12,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   KakaoSdk.init(nativeAppKey: 'b411ab336a0428cb29968ac6a558f58e');
 
@@ -59,17 +57,25 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('ko', 'KR'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: const [Locale('ko', 'KR'), Locale('en', 'US')],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const SplashScreen(),
       routes: {
         '/socialLogin': (context) => const SocialLogin(),
-        '/home': (context) => const MainScreen(),
+        '/home': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is Map) {
+            return MainScreen(
+              initialIndex: args['index'] is int ? args['index'] as int : 0,
+              initialFriendsTab: args['friendsTab'] is int
+                  ? args['friendsTab'] as int
+                  : 0,
+            );
+          }
+          return MainScreen(initialIndex: args is int ? args : 0);
+        },
       },
     );
   }

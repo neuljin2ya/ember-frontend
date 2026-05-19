@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'terms_detail.dart';
 import 'create_profile.dart';
 import 'api_service.dart';
+import 'terms_contents.dart';
 
 class SignUp extends StatefulWidget {
   final String realName;
@@ -112,7 +113,7 @@ class _SignUpState extends State<SignUp> {
                           MaterialPageRoute(
                             builder: (_) => const TermsDetail(
                               title: '[필수] 서비스 이용약관',
-                              content: '서비스 이용약관 내용...',
+                              content: serviceTermsContent,
                             ),
                           ),
                         );
@@ -132,7 +133,7 @@ class _SignUpState extends State<SignUp> {
                           MaterialPageRoute(
                             builder: (_) => const TermsDetail(
                               title: '[필수] 개인정보 수집 및 이용 동의',
-                              content: '개인정보 수집 및 이용 내용...',
+                              content: privacyPolicyContent,
                             ),
                           ),
                         );
@@ -153,8 +154,19 @@ class _SignUpState extends State<SignUp> {
                   onPressed: (_agreeService && _agreePrivacy)
                       ? () async {
                           try {
-                            await ApiService.postConsent('AI_ANALYSIS');
-                            await ApiService.postConsent('AI_DATA_USAGE');
+                            final token = await ApiService.getAccessToken();
+                            if (token == null || token.isEmpty) {
+                              throw Exception('로그인 정보가 없어요. 다시 로그인해주세요.');
+                            }
+                            final aiAnalysis = await ApiService.postConsent(
+                              'AI_ANALYSIS',
+                            );
+                            final aiDataUsage = await ApiService.postConsent(
+                              'AI_DATA_USAGE',
+                            );
+                            if (!aiAnalysis || !aiDataUsage) {
+                              throw Exception('약관 동의 저장에 실패했어요.');
+                            }
                             if (context.mounted) {
                               Navigator.push(
                                 context,
@@ -166,11 +178,9 @@ class _SignUpState extends State<SignUp> {
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('오류가 발생했습니다. 다시 시도해주세요.'),
-                                ),
-                              );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text('오류: $e')));
                             }
                           }
                         }

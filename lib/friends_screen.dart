@@ -202,20 +202,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
               //   builder: (_) => WriteExchangeDiaryScreen(roomUuid: d['roomUuid']),
               // ));
             },
-            onEnd: () => _showEndDialog(d['roomUuid']),
+            onEnd: () => _showEndDialog(d),
           );
         },
       ),
     );
   }
 
-  void _showEndDialog(String? roomUuid) {
+  void _showEndDialog(Map<String, dynamic> room) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          '교환일기를 종료하시겠습니까?',
+          '관계 선택을 보낼까요?',
           style: TextStyle(
             color: Color(0xFF111827),
             fontSize: 16,
@@ -246,8 +246,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(context);
-                    if (roomUuid != null) {
-                      await ApiService.endExchangeRoom(roomUuid);
+                    final roomId = room['roomId'] is int
+                        ? room['roomId'] as int
+                        : int.tryParse(room['roomId']?.toString() ?? '') ?? 0;
+                    if (roomId != 0) {
+                      await ApiService.endExchangeRoom(roomId);
                       _loadDiaries();
                     }
                   },
@@ -260,7 +263,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     elevation: 0,
                   ),
                   child: const Text(
-                    '끝내기',
+                    '계속 선택',
                     style: TextStyle(color: Colors.white, fontSize: 15),
                   ),
                 ),

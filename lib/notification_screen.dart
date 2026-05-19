@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
-import 'diary_detail_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -58,6 +57,36 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
     if (diff.inHours < 24) return '${diff.inHours}시간 전';
     return '${diff.inDays}일 전';
+  }
+
+  Map<String, int> _targetForNotification(Map<String, dynamic> notification) {
+    final type = notification['type']?.toString().toUpperCase() ?? '';
+    final message =
+        '${notification['body'] ?? ''} ${notification['message'] ?? ''}';
+
+    if (type.contains('CHAT') || message.contains('채팅')) {
+      return {'index': 1, 'friendsTab': 1};
+    }
+    if (type.contains('MATCH') ||
+        message.contains('선택') ||
+        message.contains('신청') ||
+        message.contains('관심')) {
+      return {'index': 1, 'friendsTab': 2};
+    }
+    if (type.contains('EXCHANGE') || message.contains('교환일기')) {
+      return {'index': 1, 'friendsTab': 0};
+    }
+    return {'index': 0, 'friendsTab': 0};
+  }
+
+  void _openNotificationTarget(Map<String, dynamic> notification) {
+    final target = _targetForNotification(notification);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/home',
+      (route) => false,
+      arguments: target,
+    );
   }
 
   @override
@@ -183,22 +212,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                         : 0;
                                   });
                                 }
-                                // 매칭 요청 알림이면 DiaryDetailScreen으로 이동
-                                if (n['type'] == 'MATCHING' &&
-                                    context.mounted) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => DiaryDetailScreen(
-                                        title: '',
-                                        time: '',
-                                        diaryId: n['diaryId'] ?? 0,
-                                        showBottomNav: false,
-                                        showMatchingButtons: true,
-                                        matchingId: n['matchingId'] ?? 0,
-                                      ),
-                                    ),
-                                  );
+                                if (context.mounted) {
+                                  _openNotificationTarget(n);
                                 }
                               },
                               child: Container(

@@ -17,7 +17,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   final _nameController = TextEditingController(text: '김이름');
   final _locationController = TextEditingController(text: '서울시 서초구');
-  final _ageController = TextEditingController(text: '23');
   final _jobController = TextEditingController(text: '학생');
   List<int> _keywords = [];
   final _inquiryController = TextEditingController();
@@ -45,6 +44,64 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Center(
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        backgroundColor: const Color(0xFF391713),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  ({String sido, String sigungu}) _splitLocation(String value) {
+    final parts = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return (sido: '', sigungu: '');
+
+    const sidoNames = {
+      '서울특별시',
+      '부산광역시',
+      '대구광역시',
+      '인천광역시',
+      '광주광역시',
+      '대전광역시',
+      '울산광역시',
+      '세종특별자치시',
+      '경기도',
+      '강원도',
+      '충청북도',
+      '충청남도',
+      '전라북도',
+      '전라남도',
+      '경상북도',
+      '경상남도',
+      '제주특별자치도',
+    };
+
+    final sido = parts.first;
+    final sigunguParts = parts
+        .skip(1)
+        .where((part) => !sidoNames.contains(part));
+    return (sido: sido, sigungu: sigunguParts.join(' '));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -55,7 +112,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     try {
       final data = await ApiService.getMyProfile();
       setState(() {
-        _nameController.text = data['nickname'] ?? '';
+        _nameController.text = data['realName'] ?? data['nickname'] ?? '';
         _locationController.text = [
           data['sido'],
           data['sigungu'],
@@ -65,7 +122,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
       final idealData = await ApiService.getMyIdealType();
       setState(() {
-        _keywords = List<int>.from(idealData['keywords'] ?? []);
+        final rawKeywords = idealData['keywords'];
+        _keywords = rawKeywords is List
+            ? rawKeywords
+                  .map((keyword) {
+                    if (keyword is Map) {
+                      final id = keyword['id'] ?? keyword['keywordId'];
+                      return id is int
+                          ? id
+                          : int.tryParse(id?.toString() ?? '');
+                    }
+                    return keyword is int
+                        ? keyword
+                        : int.tryParse(keyword?.toString() ?? '');
+                  })
+                  .whereType<int>()
+                  .toList()
+            : [];
       });
     } catch (e) {}
   }
@@ -74,7 +147,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
-    _ageController.dispose();
     _jobController.dispose();
     _inquiryController.dispose();
     super.dispose();
@@ -117,11 +189,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             const Divider(color: Color(0xFFE37474), height: 1),
             const SizedBox(height: 16),
             _EditField(
-              label: '이름',
+              label: '닉네임',
               controller: _nameController,
               onConfirm: () async {
-                await ApiService.updateProfile(nickname: _nameController.text);
-                _showSavedSnackbar();
+                final success = await ApiService.updateProfile(
+                  nickname: _nameController.text.trim(),
+                );
+                if (!mounted) return;
+                if (success) {
+                  await _loadProfile();
+                  if (!mounted) return;
+                  _showSavedSnackbar();
+                } else {
+                  _showMessage('닉네임은 30일마다 변경할 수 있어요.');
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -145,16 +226,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     const SizedBox(width: 8),
                     _ConfirmButton(
                       onTap: () async {
-                        final parts = _locationController.text.trim().split(
-                          ' ',
+                        final location = _splitLocation(
+                          _locationController.text,
                         );
-                        await ApiService.updateProfile(
-                          sido: parts.isNotEmpty ? parts.first : '',
-                          sigungu: parts.length > 1
-                              ? parts.sublist(1).join(' ')
-                              : '',
+                        final success = await ApiService.updateProfile(
+                          sido: location.sido,
+                          sigungu: location.sigungu,
                         );
-                        _showSavedSnackbar();
+                        if (!mounted) return;
+                        if (success) {
+                          await _loadProfile();
+                          if (!mounted) return;
+                          _showSavedSnackbar();
+                        } else {
+                          _showMessage('지역을 저장할 수 없어요.');
+                        }
                       },
                     ),
                   ],
@@ -163,17 +249,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             ),
             const SizedBox(height: 12),
             _EditField(
-              label: '나이',
-              controller: _ageController,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            _EditField(
               label: '직업',
               controller: _jobController,
               onConfirm: () async {
-                await ApiService.updateProfile(school: _jobController.text);
-                _showSavedSnackbar();
+                final success = await ApiService.updateProfile(
+                  school: _jobController.text.trim(),
+                );
+                if (!mounted) return;
+                if (success) {
+                  await _loadProfile();
+                  if (!mounted) return;
+                  _showSavedSnackbar();
+                } else {
+                  _showMessage('직업을 저장할 수 없어요.');
+                }
               },
             ),
             const SizedBox(height: 20),
@@ -192,6 +281,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             const Divider(color: Color(0xFFE37474), height: 1),
             const SizedBox(height: 16),
             KeywordSelector(
+              key: ValueKey(_keywords.join(',')),
+              initialSelectedIds: _keywords,
               onChanged: (keywords) {
                 setState(() => _keywords = keywords);
               },
@@ -202,7 +293,31 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: () async {
-                  await ApiService.updateIdealType(_keywords);
+                  final success = await ApiService.updateIdealType(_keywords);
+                  if (!mounted) return;
+                  if (success) {
+                    final idealData = await ApiService.getMyIdealType();
+                    final rawKeywords = idealData['keywords'];
+                    setState(() {
+                      _keywords = rawKeywords is List
+                          ? rawKeywords
+                                .map((keyword) {
+                                  if (keyword is Map) {
+                                    final id =
+                                        keyword['id'] ?? keyword['keywordId'];
+                                    return id is int
+                                        ? id
+                                        : int.tryParse(id?.toString() ?? '');
+                                  }
+                                  return keyword is int
+                                      ? keyword
+                                      : int.tryParse(keyword?.toString() ?? '');
+                                })
+                                .whereType<int>()
+                                .toList()
+                          : _keywords;
+                    });
+                  }
                   _showSavedSnackbar();
                 },
                 style: ElevatedButton.styleFrom(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'bottom_nav_bar.dart';
 import 'api_service.dart';
+import 'text_utils.dart';
 
 class DiaryDetailScreen extends StatefulWidget {
   final String title;
@@ -11,6 +12,8 @@ class DiaryDetailScreen extends StatefulWidget {
   final bool showMatchingButtons;
   final bool showDecisionButtons;
   final int? matchingId;
+  final String? initialContent;
+  final List<String> initialKeywords;
 
   const DiaryDetailScreen({
     super.key,
@@ -21,6 +24,8 @@ class DiaryDetailScreen extends StatefulWidget {
     this.showMatchingButtons = false,
     this.showDecisionButtons = false,
     this.matchingId,
+    this.initialContent,
+    this.initialKeywords = const [],
   });
 
   @override
@@ -38,6 +43,11 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _diaryDetail = {
+      if ((widget.initialContent ?? widget.title).isNotEmpty)
+        'content': widget.initialContent ?? widget.title,
+    };
+    _keywords = widget.initialKeywords;
     _loadDetail();
   }
 
@@ -49,15 +59,31 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
           ? await ApiService.getDiaryDetail(widget.diaryId)
           : await ApiService.getDiary(widget.diaryId);
       final detail = data['data'] ?? data;
+      final fallbackContent = widget.initialContent ?? widget.title;
       setState(() {
-        _diaryDetail = detail;
+        _diaryDetail = {
+          if (detail is Map) ...Map<String, dynamic>.from(detail),
+          if (fallbackContent.isNotEmpty &&
+              (detail is! Map ||
+                  (detail['content'] ??
+                              detail['contentPreview'] ??
+                              detail['previewContent'])
+                          ?.toString()
+                          .isEmpty !=
+                      false))
+            'content': fallbackContent,
+        };
         _keywords = List<String>.from(
-          detail['keywords'] ??
-              detail['personalityKeywords'] ??
-              detail['moodTags'] ??
-              [],
+          (detail is Map
+                  ? detail['keywords'] ??
+                        detail['personalityKeywords'] ??
+                        detail['moodTags']
+                  : null) ??
+              widget.initialKeywords,
         );
-        _aiComment = detail['aiComment'] ?? detail['summary'] ?? '';
+        _aiComment = detail is Map
+            ? detail['aiComment'] ?? detail['summary'] ?? ''
+            : '';
         _isLoading = false;
       });
     } catch (e) {
@@ -95,15 +121,21 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
     if (_isSubmitting || widget.matchingId == null) return;
 
     setState(() => _isSubmitting = true);
-    final success = await ApiService.acceptMatching(widget.matchingId!);
+    final result = await ApiService.acceptMatchingResponse(widget.matchingId!);
+    final code = result['code']?.toString();
+    final success =
+        code == '200' ||
+        code == '201' ||
+        result['data']?['status']?.toString() == 'MATCHED';
+    final message = result['message']?.toString();
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(success ? '수락했어요' : '수락할 수 없어요')));
-    if (success) Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(success ? '수락했어요' : message ?? '수락할 수 없어요')),
+    );
+    if (success) Navigator.pop(context, true);
   }
 
   @override
@@ -174,7 +206,14 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
       bottomNavigationBar: widget.showBottomNav
           ? BottomNavBar(
               currentIndex: _currentIndex,
-              onTap: (i) => setState(() => _currentIndex = i),
+              onTap: (i) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false,
+                  arguments: i,
+                );
+              },
             )
           : null,
     );
@@ -270,11 +309,13 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
 
   Widget _buildCardContent() {
     final shouldBlur = widget.showDecisionButtons || widget.showMatchingButtons;
-    final content =
-        _diaryDetail?['content'] ??
-        _diaryDetail?['contentPreview'] ??
-        _diaryDetail?['previewContent'] ??
-        '';
+    final content = decodeHtmlEntities(
+      _diaryDetail?['content'] ??
+          _diaryDetail?['contentPreview'] ??
+          _diaryDetail?['previewContent'] ??
+          widget.initialContent ??
+          widget.title,
+    );
 
     return Padding(
       padding: const EdgeInsets.all(20),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'profile_edit_screen.dart';
 import 'api_service.dart';
 
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -23,7 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final data = await ApiService.getMyProfile();
       setState(() {
-        _nickname = data['nickname'] ?? '사용자';
+        _nickname = data['realName'] ?? data['nickname'] ?? '사용자';
       });
     } catch (e) {}
   }
@@ -33,39 +32,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('로그아웃',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Color(0xFF391713),
-                fontSize: 18,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w600)),
-        content: const Text('로그아웃 하시겠습니까?',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Color(0xFF391713),
-                fontSize: 14,
-                fontFamily: 'Pretendard')),
+        title: const Text(
+          '로그아웃',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF391713),
+            fontSize: 18,
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '로그아웃 하시겠습니까?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF391713),
+            fontSize: 14,
+            fontFamily: 'Pretendard',
+          ),
+        ),
         actions: [
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/socialLogin', (route) => false);
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/socialLogin', (route) => false);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF9CA3AF),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
-                  child: const Text('확인',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontFamily: 'Pretendard')),
+                  child: const Text(
+                    '확인',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: 'Pretendard',
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -75,14 +85,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE37474),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
-                  child: const Text('취소',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontFamily: 'Pretendard')),
+                  child: const Text(
+                    '취소',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: 'Pretendard',
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -93,10 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showWithdrawDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => const _WithdrawDialog(),
-    );
+    showDialog(context: context, builder: (_) => const _WithdrawDialog());
   }
 
   @override
@@ -122,22 +133,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   OutlinedButton(
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => const ProfileEditScreen(),
-                      ));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileEditScreen(),
+                        ),
+                      );
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFD1D5DB)),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
-                    child: const Text('계정정보',
-                        style: TextStyle(
-                            color: Color(0xFF391713),
-                            fontSize: 14,
-                            fontFamily: 'Pretendard')),
+                    child: const Text(
+                      '계정정보',
+                      style: TextStyle(
+                        color: Color(0xFF391713),
+                        fontSize: 14,
+                        fontFamily: 'Pretendard',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -151,16 +171,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
-                  Text('버전',
-                      style: TextStyle(
-                          color: Color(0xFF9CA3AF),
-                          fontSize: 14,
-                          fontFamily: 'Pretendard')),
-                  Text('1.0.0',
-                      style: TextStyle(
-                          color: Color(0xFF9CA3AF),
-                          fontSize: 14,
-                          fontFamily: 'Pretendard')),
+                  Text(
+                    '버전',
+                    style: TextStyle(
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 14,
+                      fontFamily: 'Pretendard',
+                    ),
+                  ),
+                  Text(
+                    '1.0.0',
+                    style: TextStyle(
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 14,
+                      fontFamily: 'Pretendard',
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -178,15 +204,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFD1D5DB)),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
-                    child: const Text('로그아웃',
-                        style: TextStyle(
-                            color: Color(0xFF391713),
-                            fontSize: 14,
-                            fontFamily: 'Pretendard')),
+                    child: const Text(
+                      '로그아웃',
+                      style: TextStyle(
+                        color: Color(0xFF391713),
+                        fontSize: 14,
+                        fontFamily: 'Pretendard',
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
                   OutlinedButton(
@@ -194,15 +226,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFD1D5DB)),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
-                    child: const Text('회원 탈퇴하기',
-                        style: TextStyle(
-                            color: Color(0xFF391713),
-                            fontSize: 14,
-                            fontFamily: 'Pretendard')),
+                    child: const Text(
+                      '회원 탈퇴하기',
+                      style: TextStyle(
+                        color: Color(0xFF391713),
+                        fontSize: 14,
+                        fontFamily: 'Pretendard',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -232,19 +270,25 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
       // 탈퇴 완료 화면
       return AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('회원탈퇴가 완료되었어요',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Color(0xFF391713),
-                fontSize: 18,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w600)),
-        content: const Text('그동안 이용해주셔서 감사합니다.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Color(0xFF391713),
-                fontSize: 14,
-                fontFamily: 'Pretendard')),
+        title: const Text(
+          '회원탈퇴가 완료되었어요',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF391713),
+            fontSize: 18,
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          '그동안 이용해주셔서 감사합니다.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF391713),
+            fontSize: 14,
+            fontFamily: 'Pretendard',
+          ),
+        ),
         actions: [
           SizedBox(
             width: double.infinity,
@@ -253,21 +297,26 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
               onPressed: () async {
                 await ApiService.logout();
                 if (context.mounted) {
-                  Navigator.of(context)
-                      .pushNamedAndRemoveUntil('/socialLogin', (route) => false);
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/socialLogin', (route) => false);
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE37474),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 elevation: 0,
               ),
-              child: const Text('확인',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: 'Pretendard')),
+              child: const Text(
+                '확인',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'Pretendard',
+                ),
+              ),
             ),
           ),
         ],
@@ -277,13 +326,16 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
     // 탈퇴 확인 화면
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('회원탈퇴',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              color: Color(0xFF391713),
-              fontSize: 18,
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600)),
+      title: const Text(
+        '회원탈퇴',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Color(0xFF391713),
+          fontSize: 18,
+          fontFamily: 'Pretendard',
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -291,10 +343,11 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
             '삭제 후에는 다시 확인할 수 없고\n지금까지의 분석 결과와 리포트가 모두 삭제돼요.\n정말 탈퇴하시겠어요?',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: Color(0xFF391713),
-                fontSize: 13,
-                fontFamily: 'Pretendard',
-                height: 1.6),
+              color: Color(0xFF391713),
+              fontSize: 13,
+              fontFamily: 'Pretendard',
+              height: 1.6,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -319,9 +372,10 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
                 child: Text(
                   '삭제 내용을 확인했고, 회원탈퇴에 동의해요',
                   style: TextStyle(
-                      color: Color(0xFF391713),
-                      fontSize: 12,
-                      fontFamily: 'Pretendard'),
+                    color: Color(0xFF391713),
+                    fontSize: 12,
+                    fontFamily: 'Pretendard',
+                  ),
                 ),
               ),
             ],
@@ -335,22 +389,26 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
               child: ElevatedButton(
                 onPressed: _checked
                     ? () async {
-                  await ApiService.deactivate();
-                  setState(() => _completed = true);
-                }
+                        await ApiService.deactivate();
+                        setState(() => _completed = true);
+                      }
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF9CA3AF),
                   disabledBackgroundColor: const Color(0xFFE5E5E5),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('확인',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: 'Pretendard')),
+                child: const Text(
+                  '확인',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Pretendard',
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -360,14 +418,18 @@ class _WithdrawDialogState extends State<_WithdrawDialog> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE37474),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('취소',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: 'Pretendard')),
+                child: const Text(
+                  '취소',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontFamily: 'Pretendard',
+                  ),
+                ),
               ),
             ),
           ],
@@ -392,12 +454,15 @@ class _MenuItem extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    color: Color(0xFF391713),
-                    fontSize: 16,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w400)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF391713),
+                fontSize: 16,
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w400,
+              ),
+            ),
             const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
           ],
         ),
