@@ -112,9 +112,9 @@ async def generate_summary(content: str, max_chars: int = 50) -> str:
                 if resp.status != 200:
                     error_text = await resp.text()
                     logger.warning(
-                        "Gemini API 호출 실패 — fallback 사용",
-                        status=resp.status,
-                        error=error_text[:200],
+                        "Gemini API 호출 실패 — fallback 사용 (status=%s, error=%s)",
+                        resp.status,
+                        error_text[:200],
                     )
                     return _fallback_summary(content, max_chars)
 
@@ -141,12 +141,11 @@ async def generate_summary(content: str, max_chars: int = 50) -> str:
         if len(summary) > max_chars:
             summary = summary[:max_chars]
 
-        logger.info("Gemini 요약 생성 완료", summary_len=len(summary))
+        logger.info("Gemini 요약 생성 완료 (len=%d)", len(summary))
         return summary
 
     except Exception as exc:
         logger.warning(
-            "Gemini API 예외 발생 — fallback 사용",
-            error=str(exc),
+            "Gemini API 예외 발생 — fallback 사용: %s", exc,
         )
         return _fallback_summary(content, max_chars)
