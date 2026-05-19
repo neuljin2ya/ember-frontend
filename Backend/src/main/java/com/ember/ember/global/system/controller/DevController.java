@@ -241,21 +241,18 @@ public class DevController {
 
     @Operation(summary = "교환일기 마감 시간 변경", description = "교환일기 방의 deadlineAt을 현재 시각 + N분으로 변경. 만료 테스트용.")
     @PostMapping("/api/dev/exchange-rooms/{roomId}/set-deadline")
-    @Transactional
     public Map<String, Object> setDeadline(@PathVariable Long roomId,
-                                            @RequestParam(defaultValue = "5") int minutes) {
-        ExchangeRoom room = exchangeRoomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("교환방 없음: " + roomId));
-
-        // deadlineAt을 현재 시각 + N분으로 변경 (테스트에서 빨리 만료시키기 위함)
+                                            @RequestParam(defaultValue = "60") int minutes) {
+        var jdbc = new org.springframework.jdbc.core.JdbcTemplate(dataSource);
         LocalDateTime newDeadline = LocalDateTime.now().plusMinutes(minutes);
-        // 리플렉션 없이 Entity에 setter 없으므로 DB 직접 업데이트
-        exchangeRoomRepository.save(room);
-
+        int updated = jdbc.update("UPDATE exchange_rooms SET deadline_at = ? WHERE id = ?", newDeadline, roomId);
+        if (updated == 0) {
+            return Map.of("error", "NOT_FOUND", "message", "교환방 없음: " + roomId);
+        }
         return Map.of(
                 "roomId", roomId,
                 "newDeadlineAt", newDeadline.toString(),
-                "message", "deadline을 " + minutes + "분 후로 설정했습니다. (실제 반영은 아래 JPQL 사용)"
+                "message", "deadline을 " + minutes + "분 후로 설정했습니다."
         );
     }
 
