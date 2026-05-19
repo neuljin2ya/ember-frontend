@@ -103,8 +103,8 @@ class ExchangeResult(BaseModel):
   writingTempB: float = Field(..., ge=0.0, le=1.0, description="사용자 B 글쓰기 온도")
   aiDescription: str = Field(
     ...,
-    max_length=60,
-    description="60자 이내 한국어 AI 설명",
+    max_length=80,
+    description="80자 이내 한국어 AI 설명",
   )
 
 
