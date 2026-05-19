@@ -82,3 +82,4 @@ docs/
 
 # PEM 키(EC2 SSH 등) — 유출 방지
 *.pem
+db_dashboard.html
