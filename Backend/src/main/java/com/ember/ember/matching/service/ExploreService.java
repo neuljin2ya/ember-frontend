@@ -150,11 +150,14 @@ public class ExploreService {
                     .map(RecommendationItem::getUserId)
                     .collect(Collectors.toList());
 
-            List<Diary> latestDiaries = diaryRepository.findLatestDiaryPerUserIn(recoUserIds);
+            List<Diary> allDiaries = diaryRepository.findLatestDiaryPerUserIn(recoUserIds);
 
-            // userId → Diary 매핑
-            Map<Long, Diary> userDiaryMap = latestDiaries.stream()
-                    .collect(Collectors.toMap(d -> d.getUser().getId(), d -> d, (a, b) -> a));
+            // userId → 최신 Diary 매핑 (이미 id DESC 정렬이므로 첫 번째가 최신)
+            Map<Long, Diary> userDiaryMap = new LinkedHashMap<>();
+            for (Diary d : allDiaries) {
+                userDiaryMap.putIfAbsent(d.getUser().getId(), d);
+            }
+            List<Diary> latestDiaries = new ArrayList<>(userDiaryMap.values());
 
             // 키워드 배치 조회
             List<Long> diaryIds = latestDiaries.stream().map(Diary::getId).collect(Collectors.toList());

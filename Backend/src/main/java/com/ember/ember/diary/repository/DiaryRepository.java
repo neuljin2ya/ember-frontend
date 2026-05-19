@@ -88,13 +88,13 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
             Pageable pageable);
 
     /**
-     * 여러 사용자의 최신 일기를 각 1건씩 조회 (추천순 탐색용).
-     * 유저별 가장 최근 일기만 반환한다.
+     * 여러 사용자의 일기를 최신순으로 조회 (추천순 탐색용).
+     * 서비스 레이어에서 유저별 첫 번째만 취해 사용.
      */
     @Query("""
             SELECT d FROM Diary d JOIN FETCH d.user u
             WHERE d.user.id IN :userIds
-              AND d.id = (SELECT MAX(d2.id) FROM Diary d2 WHERE d2.user.id = d.user.id)
+            ORDER BY d.id DESC
             """)
     List<Diary> findLatestDiaryPerUserIn(@Param("userIds") List<Long> userIds);
 
