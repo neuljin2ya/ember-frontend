@@ -172,6 +172,7 @@ public class DevController {
             "DELETE FROM reports WHERE reporter_id = ? OR reported_user_id = ?",
             "DELETE FROM appeals WHERE user_id = ?",
             "DELETE FROM sanction_histories WHERE user_id = ?",
+            "DELETE FROM ai_consent_log WHERE user_id = ?",
             "DELETE FROM users WHERE id = ?",
         };
 
