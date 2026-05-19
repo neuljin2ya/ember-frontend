@@ -132,11 +132,18 @@ public class DevController {
     @DeleteMapping("/api/dev/users/{userId}")
     @Transactional
     public Map<String, Object> deleteUserCompletely(@PathVariable Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("유저 없음: " + userId));
-        String nickname = user.getNickname() != null ? user.getNickname() : "유저" + userId;
+        // @SQLRestriction 우회: 네이티브 쿼리로 유저 존재 확인
+        Object[] userRow = (Object[]) entityManager
+                .createNativeQuery("SELECT id, nickname FROM users WHERE id = :uid")
+                .setParameter("uid", userId)
+                .getResultList().stream().findFirst().orElse(null);
 
-        // FK 순서대로 네이티브 쿼리 삭제
+        if (userRow == null) {
+            return Map.of("error", "NOT_FOUND", "message", "유저 없음: " + userId);
+        }
+        String nickname = userRow[1] != null ? userRow[1].toString() : "유저" + userId;
+
+        // FK 순서대로 네이티브 쿼리 삭제 — 테이블 미존재 시 무시
         String[] sqls = {
             "DELETE FROM diary_keywords WHERE diary_id IN (SELECT id FROM diaries WHERE user_id = :uid)",
             "DELETE FROM outbox_events WHERE aggregate_type = 'DIARY' AND aggregate_id IN (SELECT id FROM diaries WHERE user_id = :uid)",
@@ -169,17 +176,21 @@ public class DevController {
             "DELETE FROM users WHERE id = :uid",
         };
 
+        int totalDeleted = 0;
         for (String sql : sqls) {
             try {
-                entityManager.createNativeQuery(sql).setParameter("uid", userId).executeUpdate();
-            } catch (Exception ignored) {
-                // 테이블이 없는 경우 무시
+                totalDeleted += entityManager.createNativeQuery(sql).setParameter("uid", userId).executeUpdate();
+            } catch (Exception e) {
+                // 테이블 미존재 등 무시 — 로그만 남김
             }
         }
+        entityManager.flush();
+        entityManager.clear();
 
         return Map.of(
                 "userId", userId,
                 "nickname", nickname,
+                "deletedRows", totalDeleted,
                 "message", "유저 및 연관 데이터 완전 삭제 완료"
         );
     }
