@@ -142,25 +142,36 @@ public class DevController {
         }
         String nickname = rows.get(0).get("nickname") != null ? rows.get(0).get("nickname").toString() : "유저" + userId;
 
-        // FK 순서대로 삭제
+        // FK 의존 순서대로 삭제 (자식 → 부모)
         String[] sqls = {
+            // 1. 최하위 자식 (다른 테이블에 의존하지 않는 것)
             "DELETE FROM diary_keywords WHERE diary_id IN (SELECT id FROM diaries WHERE user_id = ?)",
             "DELETE FROM outbox_events WHERE aggregate_type = 'DIARY' AND aggregate_id IN (SELECT id FROM diaries WHERE user_id = ?)",
             "DELETE FROM notifications WHERE user_id = ?",
             "DELETE FROM user_notification_settings WHERE user_id = ?",
+            // 2. messages → chat_rooms 참조
             "DELETE FROM messages WHERE sender_id = ?",
             "DELETE FROM messages WHERE chat_room_id IN (SELECT id FROM chat_rooms WHERE user_a_id = ? OR user_b_id = ?)",
+            // 3. couple_requests, couples → chat_rooms 참조
             "DELETE FROM couple_requests WHERE requester_id = ? OR receiver_id = ?",
+            "DELETE FROM couple_requests WHERE chat_room_id IN (SELECT id FROM chat_rooms WHERE user_a_id = ? OR user_b_id = ?)",
             "DELETE FROM couples WHERE user_a_id = ? OR user_b_id = ?",
-            "DELETE FROM chat_rooms WHERE user_a_id = ? OR user_b_id = ?",
+            "DELETE FROM couples WHERE chat_room_id IN (SELECT id FROM chat_rooms WHERE user_a_id = ? OR user_b_id = ?)",
+            // 4. exchange_diaries, exchange_reports → exchange_rooms 참조
             "DELETE FROM exchange_diaries WHERE author_id = ?",
             "DELETE FROM exchange_diaries WHERE room_id IN (SELECT id FROM exchange_rooms WHERE user_a_id = ? OR user_b_id = ?)",
             "DELETE FROM exchange_reports WHERE room_id IN (SELECT id FROM exchange_rooms WHERE user_a_id = ? OR user_b_id = ?)",
+            // 5. exchange_rooms → chat_rooms 참조 (exchange_rooms 먼저 지워야 chat_rooms 삭제 가능)
             "DELETE FROM exchange_rooms WHERE user_a_id = ? OR user_b_id = ?",
+            // 6. chat_rooms (이제 참조하는 자식이 모두 제거됨)
+            "DELETE FROM chat_rooms WHERE user_a_id = ? OR user_b_id = ?",
+            // 7. matching
             "DELETE FROM matching_passes WHERE user_id = ? OR target_user_id = ?",
             "DELETE FROM matchings WHERE from_user_id = ? OR to_user_id = ?",
+            // 8. diaries
             "DELETE FROM diary_drafts WHERE user_id = ?",
             "DELETE FROM diaries WHERE user_id = ?",
+            // 9. 유저 부속
             "DELETE FROM user_ideal_keywords WHERE user_id = ?",
             "DELETE FROM user_consents WHERE user_id = ?",
             "DELETE FROM user_activity_events WHERE user_id = ?",
@@ -173,6 +184,7 @@ public class DevController {
             "DELETE FROM appeals WHERE user_id = ?",
             "DELETE FROM sanction_histories WHERE user_id = ?",
             "DELETE FROM ai_consent_log WHERE user_id = ?",
+            // 10. 유저 본체
             "DELETE FROM users WHERE id = ?",
         };
 
