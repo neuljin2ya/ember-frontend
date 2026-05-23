@@ -21,7 +21,9 @@ class ExchangeRoomDetailScreen extends StatefulWidget {
 
 class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
   Map<String, dynamic>? _room;
+  Map<String, dynamic>? _nextStepStatus;
   bool _isLoading = true;
+  bool _isReportLoading = false;
 
   @override
   void initState() {
@@ -32,9 +34,16 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
   Future<void> _loadRoom() async {
     try {
       final data = await ApiService.getExchangeRoomDetail(widget.roomId);
+      Map<String, dynamic>? nextStepStatus;
+      try {
+        nextStepStatus = await ApiService.getNextStepStatus(widget.roomId);
+      } catch (e) {
+        nextStepStatus = null;
+      }
       if (!mounted) return;
       setState(() {
         _room = data;
+        _nextStepStatus = nextStepStatus;
         _isLoading = false;
       });
     } catch (e) {
@@ -76,6 +85,35 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
       SnackBar(content: Text(success ? '선택을 보냈어요' : '선택을 보낼 수 없어요')),
     );
     if (success) _loadRoom();
+  }
+
+  bool get _canViewReport {
+    final status = (_room?['status'] ?? _nextStepStatus?['status'])
+        ?.toString()
+        .toUpperCase();
+    return status == 'COMPLETED' ||
+        status == 'CHAT_CONNECTED' ||
+        status == 'ARCHIVED';
+  }
+
+  Future<void> _openReport() async {
+    if (_isReportLoading) return;
+    setState(() => _isReportLoading = true);
+    try {
+      final report = await ApiService.getExchangeRoomReport(widget.roomId);
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (_) => _ExchangeReportDialog(report: report),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('리포트를 불러올 수 없어요: $e')));
+    } finally {
+      if (mounted) setState(() => _isReportLoading = false);
+    }
   }
 
   String _formatDate(dynamic value) {
@@ -166,6 +204,8 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
                                       if (currentTurn != null)
                                         '$currentTurn번째 턴 진행 중',
                                       if (deadline.isNotEmpty) '마감 $deadline',
+                                      if (_nextStepStatus?['status'] != null)
+                                        '관계 확장 ${_nextStepStatus!['status']}',
                                     ].join(' · '),
                                     style: const TextStyle(
                                       color: Color(0xFF391713),
@@ -255,6 +295,41 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
                                       ),
                                     ],
                                   )
+                                : _canViewReport
+                                ? SizedBox(
+                                    width: double.infinity,
+                                    height: 52,
+                                    child: ElevatedButton(
+                                      onPressed: _isReportLoading
+                                          ? null
+                                          : _openReport,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFE37474,
+                                        ),
+                                        disabledBackgroundColor: const Color(
+                                          0xFFF0B7B7,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: Text(
+                                        _isReportLoading
+                                            ? '불러오는 중...'
+                                            : 'AI 공통점 리포트',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontFamily: 'Pretendard',
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  )
                                 : SizedBox(
                                     width: double.infinity,
                                     height: 52,
@@ -331,6 +406,115 @@ class _RoomActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ExchangeReportDialog extends StatelessWidget {
+  final Map<String, dynamic> report;
+
+  const _ExchangeReportDialog({required this.report});
+
+  List<String> _stringList(String key) {
+    final value = report[key];
+    if (value is List) return value.map((e) => e.toString()).toList();
+    return const [];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keywords = _stringList('commonKeywords');
+    final lifestyles = _stringList('lifestylePatterns');
+    final similarity = report['emotionSimilarity']?.toString();
+    final summary =
+        report['summary'] ??
+        report['description'] ??
+        report['comment'] ??
+        '두 사람의 교환일기에서 발견한 공통점을 정리했어요.';
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        'AI 공통점 리포트',
+        style: TextStyle(
+          color: Color(0xFF391713),
+          fontFamily: 'Pretendard',
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              summary.toString(),
+              style: const TextStyle(
+                color: Color(0xFF391713),
+                fontFamily: 'Pretendard',
+                height: 1.5,
+              ),
+            ),
+            if (similarity != null) ...[
+              const SizedBox(height: 14),
+              Text('감정 유사도 $similarity'),
+            ],
+            if (keywords.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _ReportChips(title: '공통 키워드', values: keywords),
+            ],
+            if (lifestyles.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _ReportChips(title: '라이프스타일', values: lifestyles),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('닫기', style: TextStyle(color: Color(0xFFE37474))),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReportChips extends StatelessWidget {
+  final String title;
+  final List<String> values;
+
+  const _ReportChips({required this.title, required this.values});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF391713),
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: values
+              .map(
+                (value) => Chip(
+                  label: Text(value),
+                  backgroundColor: const Color(0xFFFFEFE7),
+                  labelStyle: const TextStyle(color: Color(0xFFE37474)),
+                  side: BorderSide.none,
+                ),
+              )
+              .toList(),
+        ),
+      ],
     );
   }
 }

@@ -47,6 +47,56 @@ class _ChatScreenState extends State<ChatScreen> {
     return const AssetImage('assets/images/profile.jpg');
   }
 
+  int? _partnerUserId() {
+    final profile = _partnerProfile;
+    if (profile == null) return null;
+    for (final key in [
+      'targetUserId',
+      'partnerUserId',
+      'partnerId',
+      'userId',
+      'memberId',
+      'id',
+    ]) {
+      final value = profile[key];
+      if (value is int) return value;
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
+  Future<void> _reportOrBlockPartner({required bool block}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final targetUserId = _partnerUserId();
+    if (targetUserId == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('상대방 정보를 불러온 뒤 다시 시도해주세요.')),
+      );
+      return;
+    }
+
+    try {
+      final success = block
+          ? await ApiService.blockUser(targetUserId)
+          : await ApiService.reportUser(targetUserId, '부적절한 내용');
+      if (!mounted) return;
+      if (success) {
+        if (block) Navigator.pop(context);
+        messenger.showSnackBar(
+          SnackBar(content: Text(block ? '차단되었습니다.' : '신고가 접수되었습니다.')),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text(block ? '차단할 수 없어요.' : '신고를 접수할 수 없어요.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('처리 실패: $e')));
+    }
+  }
+
   void _openPartnerProfile() {
     Navigator.push(
       context,
@@ -209,12 +259,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   TextButton(
                     onPressed: () async {
                       Navigator.pop(context);
-                      await ApiService.reportUser(widget.roomId, '부적절한 내용');
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('신고가 접수되었습니다.')),
-                        );
-                      }
+                      await _reportOrBlockPartner(block: false);
                     },
                     child: const Text(
                       '신고하기',
@@ -228,13 +273,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   TextButton(
                     onPressed: () async {
                       Navigator.pop(context);
-                      await ApiService.blockUser(widget.roomId);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('차단되었습니다.')),
-                        );
-                      }
+                      await _reportOrBlockPartner(block: true);
                     },
                     child: const Text(
                       '차단하기',
@@ -252,6 +291,29 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleCoupleAction(String action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final success = switch (action) {
+        'request' => await ApiService.postCoupleRequest(widget.roomId),
+        'accept' => await ApiService.acceptCouple(widget.roomId),
+        'reject' => await ApiService.rejectCouple(widget.roomId),
+        _ => false,
+      };
+      if (!mounted) return;
+      final message = switch (action) {
+        'request' => success ? '커플 신청을 보냈어요.' : '커플 신청을 보낼 수 없어요.',
+        'accept' => success ? '커플 요청을 수락했어요.' : '커플 요청을 수락할 수 없어요.',
+        'reject' => success ? '커플 요청을 거절했어요.' : '커플 요청을 거절할 수 없어요.',
+        _ => '처리할 수 없어요.',
+      };
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('처리 실패: $e')));
+    }
   }
 
   @override
@@ -348,6 +410,15 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         centerTitle: true,
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.favorite_border, color: Color(0xFFE37474)),
+            onSelected: _handleCoupleAction,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'request', child: Text('커플 신청')),
+              PopupMenuItem(value: 'accept', child: Text('커플 수락')),
+              PopupMenuItem(value: 'reject', child: Text('커플 거절')),
+            ],
+          ),
           TextButton(
             onPressed: _showEndDialog,
             child: const Text(

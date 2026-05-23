@@ -60,7 +60,43 @@ class ApiService {
         'data': null,
       };
     }
-    return Map<String, dynamic>.from(jsonDecode(response.body));
+    final body = response.body.trimLeft();
+    if (body.startsWith('<!DOCTYPE html') ||
+        body.startsWith('<html') ||
+        body.startsWith('<HTML')) {
+      final preview = body
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .replaceAll(RegExp(r'<[^>]*>'), ' ')
+          .trim();
+      return {
+        'code': response.statusCode.toString(),
+        'message':
+            '서버가 JSON이 아닌 HTML 응답을 보냈어요. 서버 상태나 API 주소를 확인해주세요. (${response.statusCode})',
+        'data': null,
+        'rawPreview': preview.length > 180
+            ? '${preview.substring(0, 180)}...'
+            : preview,
+      };
+    }
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      return {
+        'code': response.statusCode.toString(),
+        'message': '서버 응답이 객체 형식이 아니에요.',
+        'data': decoded,
+      };
+    } on FormatException {
+      final preview = response.body.length > 180
+          ? '${response.body.substring(0, 180)}...'
+          : response.body;
+      return {
+        'code': response.statusCode.toString(),
+        'message': '서버 응답을 해석할 수 없어요. (${response.statusCode})',
+        'data': null,
+        'rawPreview': preview,
+      };
+    }
   }
 
   static Map<String, dynamic> _payload(Map<String, dynamic> response) {
@@ -260,10 +296,21 @@ class ApiService {
     final data = _decodeMap(response);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(data['message'] ?? '소셜 로그인에 실패했어요.');
+      final preview = data['rawPreview']?.toString();
+      throw Exception(
+        [
+          data['message'] ?? '소셜 로그인에 실패했어요.',
+          if (preview != null && preview.isNotEmpty) '응답 일부: $preview',
+        ].join('\n'),
+      );
     }
 
     final tokenData = _payload(data);
+    if (data['data'] == null && data['rawPreview'] != null) {
+      throw Exception(
+        '${data['message']}\n응답 일부: ${data['rawPreview']}\n잠시 후 다시 시도하거나 서버 로그를 확인해주세요.',
+      );
+    }
     final accessToken = _findStringDeep(tokenData, [
       'accessToken',
       'access_token',
@@ -514,6 +561,23 @@ class ApiService {
       );
     }
     return decoded;
+  }
+
+  static Future<Map<String, dynamic>> updateDiary({
+    required int diaryId,
+    required String content,
+  }) async {
+    final headers = await _requiredAuthHeaders();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/api/diaries/$diaryId'),
+      headers: headers,
+      body: jsonEncode({'content': content}),
+    );
+    final data = _decodeMap(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(data['message'] ?? '일기를 수정할 수 없어요.');
+    }
+    return data;
   }
 
   static Future<bool> selectMatching(int diaryId) async {
@@ -817,6 +881,15 @@ class ApiService {
     return response.statusCode == 200 || response.statusCode == 201;
   }
 
+  static Future<bool> markAllNotificationsRead() async {
+    final headers = await _authHeaders();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/api/notifications/read-all'),
+      headers: headers,
+    );
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
+
   static Future<bool> skipMatching(int diaryId) async {
     final headers = await _authHeaders();
     final response = await http.post(
@@ -981,6 +1054,24 @@ class ApiService {
     return _payload(_decodeMap(response));
   }
 
+  static Future<Map<String, dynamic>> getNextStepStatus(int roomId) async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/exchange-rooms/$roomId/next-step/status'),
+      headers: headers,
+    );
+    return _payload(_decodeMap(response));
+  }
+
+  static Future<Map<String, dynamic>> getExchangeRoomReport(int roomId) async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/exchange-rooms/$roomId/report'),
+      headers: headers,
+    );
+    return _payload(_decodeMap(response));
+  }
+
   static Future<Map<String, dynamic>> getChatProfile(int roomId) async {
     final headers = await _authHeaders();
     final response = await http.get(
@@ -1026,6 +1117,15 @@ class ApiService {
     return _decodeMap(response);
   }
 
+  static Future<Map<String, dynamic>> getNoticeDetail(int id) async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/notices/$id'),
+      headers: headers,
+    );
+    return _payload(_decodeMap(response));
+  }
+
   static Future<Map<String, dynamic>> getFaq() async {
     final headers = await _authHeaders();
     final response = await http.get(
@@ -1033,6 +1133,48 @@ class ApiService {
       headers: headers,
     );
     return _decodeMap(response);
+  }
+
+  static Future<Map<String, dynamic>> getSupportInquiries() async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/support/inquiries'),
+      headers: headers,
+    );
+    return _decodeMap(response);
+  }
+
+  static Future<Map<String, dynamic>> getSupportInquiryDetail(int id) async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/support/inquiries/$id'),
+      headers: headers,
+    );
+    return _payload(_decodeMap(response));
+  }
+
+  static Future<Map<String, dynamic>> getBlockList({
+    String? cursor,
+    int size = 20,
+  }) async {
+    final headers = await _authHeaders();
+    final uri = Uri.parse('$baseUrl/api/users/me/block-list').replace(
+      queryParameters: {
+        if (cursor != null) 'cursor': cursor,
+        'size': size.toString(),
+      },
+    );
+    final response = await http.get(uri, headers: headers);
+    return _decodeMap(response);
+  }
+
+  static Future<bool> unblockUser(int targetUserId) async {
+    final headers = await _authHeaders();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/users/$targetUserId/block'),
+      headers: headers,
+    );
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   static Future<Map<String, dynamic>> getExchangeRoomHistory() async {

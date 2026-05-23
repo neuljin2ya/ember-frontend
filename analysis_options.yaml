@@ -9,6 +9,21 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # The release Flutter app lives at the repository root.
+    # These folders are legacy/nested Flutter projects and must not be analyzed
+    # as part of the APK/AAB target.
+    - Frontend/lib/**
+    - Frontend/android/**
+    - Frontend/ios/**
+    - Frontend/linux/**
+    - Frontend/macos/**
+    - Frontend/windows/**
+    - Frontend/web/**
+    - Frontend/test/**
+    - test_frontend/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

@@ -138,6 +138,81 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
     if (success) Navigator.pop(context, true);
   }
 
+  Future<void> _editDiary() async {
+    final currentContent = decodeHtmlEntities(
+      _diaryDetail?['content'] ??
+          _diaryDetail?['contentPreview'] ??
+          _diaryDetail?['previewContent'] ??
+          widget.initialContent ??
+          widget.title,
+    );
+    final controller = TextEditingController(text: currentContent);
+    final updated = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('일기 수정'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: TextField(
+              controller: controller,
+              minLines: 8,
+              maxLines: 12,
+              maxLength: 1000,
+              decoration: const InputDecoration(
+                hintText: '수정할 일기 내용을 입력해주세요.',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = controller.text.trim();
+                if (text.length < 200) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('일기는 200자 이상 작성해주세요.')),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE37474),
+              ),
+              child: const Text('저장', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (updated == null || updated == currentContent || _isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ApiService.updateDiary(diaryId: widget.diaryId, content: updated);
+      if (!mounted) return;
+      setState(() {
+        _diaryDetail = {...?_diaryDetail, 'content': updated};
+        _isSubmitting = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('일기를 수정했어요.')));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('일기 수정 실패: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,13 +244,20 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.close,
+                    icon: Icon(
+                      widget.showDecisionButtons || widget.showMatchingButtons
+                          ? Icons.close
+                          : Icons.edit_outlined,
                       size: 24,
-                      color: Color(0xFF391713),
+                      color: const Color(0xFF391713),
                     ),
-                    onPressed: () =>
-                        Navigator.popUntil(context, (route) => route.isFirst),
+                    onPressed:
+                        widget.showDecisionButtons || widget.showMatchingButtons
+                        ? () => Navigator.popUntil(
+                            context,
+                            (route) => route.isFirst,
+                          )
+                        : _editDiary,
                   ),
                 ],
               ),

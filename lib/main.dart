@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'splash_screen.dart';
 import 'social_login.dart';
@@ -25,12 +27,14 @@ Future<void> initFcmToken() async {
   try {
     await FirebaseMessaging.instance.requestPermission();
 
-    final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-    print('APNS token: $apnsToken');
+    if (Platform.isIOS) {
+      final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+      print('APNS token: $apnsToken');
 
-    if (apnsToken == null) {
-      print('APNS token 아직 준비 안 됨');
-      return;
+      if (apnsToken == null) {
+        print('APNS token 아직 준비 안 됨');
+        return;
+      }
     }
 
     final token = await FirebaseMessaging.instance.getToken();

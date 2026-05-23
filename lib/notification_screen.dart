@@ -34,12 +34,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _markAllRead() async {
-    for (final n in _notifications) {
-      if (n['isRead'] == false) {
-        await ApiService.markNotificationRead(
-          n['notificationId'] ?? n['id'] ?? 0,
-        );
+    final success = await ApiService.markAllNotificationsRead();
+    if (!success || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('알림을 모두 읽음 처리할 수 없어요.')));
       }
+      return;
     }
     setState(() {
       for (final n in _notifications) {
