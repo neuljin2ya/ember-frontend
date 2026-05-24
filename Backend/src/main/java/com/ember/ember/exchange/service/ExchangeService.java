@@ -19,6 +19,7 @@ import com.ember.ember.exchange.repository.NextStepChoiceRepository;
 import com.ember.ember.global.exception.BusinessException;
 import com.ember.ember.global.response.ErrorCode;
 import com.ember.ember.global.security.xss.XssSanitizer;
+import com.ember.ember.global.notification.FcmService;
 import com.ember.ember.notification.domain.Notification;
 import com.ember.ember.notification.repository.NotificationRepository;
 import com.ember.ember.user.domain.User;
@@ -52,6 +53,7 @@ public class ExchangeService {
     private final ExchangeReportRepository exchangeReportRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final NotificationRepository notificationRepository;
+    private final FcmService fcmService;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
@@ -216,6 +218,7 @@ public class ExchangeService {
         Notification notification = Notification.create(partner, "EXCHANGE_DIARY",
                 title, body, "/exchange-rooms/" + room.getId());
         notificationRepository.save(notification);
+        fcmService.sendPushToUser(partner.getId(), title, body);
 
         log.info("[ExchangeService] 교환일기 작성 — roomId={}, turnNumber={}, isCompleted={}",
                 roomId, turnNumber, isCompleted);

@@ -2,6 +2,7 @@ package com.ember.ember.exchange.service;
 
 import com.ember.ember.exchange.domain.ExchangeRoom;
 import com.ember.ember.exchange.repository.ExchangeRoomRepository;
+import com.ember.ember.global.notification.FcmService;
 import com.ember.ember.notification.domain.Notification;
 import com.ember.ember.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class ExchangeRoomScheduler {
 
     private final ExchangeRoomRepository exchangeRoomRepository;
     private final NotificationRepository notificationRepository;
+    private final FcmService fcmService;
 
     /** 만료 대상 교환방 처리 (5초 버퍼) */
     @Scheduled(fixedRate = 600_000) // 10분
@@ -52,5 +54,8 @@ public class ExchangeRoomScheduler {
                 "교환일기 작성 기한이 만료되었습니다.",
                 "/exchange-rooms/" + room.getId());
         notificationRepository.save(notification);
+        fcmService.sendPushToUser(user.getId(),
+                "교환일기 시간이 종료되었습니다.",
+                "교환일기 작성 기한이 만료되었습니다.");
     }
 }

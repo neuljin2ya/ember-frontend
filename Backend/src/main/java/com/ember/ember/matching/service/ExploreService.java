@@ -629,6 +629,7 @@ public class ExploreService {
         Notification notification = Notification.create(
                 toUser, "MATCHING_REQUEST", title, body, "/matching/requests");
         notificationRepository.save(notification);
+        fcmService.sendPushToUser(toUser.getId(), title, body);
 
         log.info("[알림] MATCHING_REQUEST — toUserId={}, title={}", toUser.getId(), title);
     }
@@ -640,6 +641,7 @@ public class ExploreService {
         Notification notification = Notification.create(
                 target, "MATCHING_MATCHED", title, body, deeplink);
         notificationRepository.save(notification);
+        fcmService.sendPushToUser(target.getId(), title, body);
 
         log.info("[알림] MATCHING_MATCHED — targetUserId={}, roomUuid={}", target.getId(), room.getRoomUuid());
     }
