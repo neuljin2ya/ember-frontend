@@ -50,6 +50,9 @@ public class ChatWebSocketController {
     }
 
     private Long extractUserId(Principal principal) {
+        if (principal == null) {
+            throw new IllegalStateException("인증 정보가 없습니다. WebSocket 연결 시 토큰을 전달해주세요.");
+        }
         if (principal instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth) {
             if (auth.getPrincipal() instanceof CustomUserDetails details) {
                 return details.getUserId();

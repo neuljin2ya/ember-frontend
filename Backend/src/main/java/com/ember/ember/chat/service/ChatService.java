@@ -221,6 +221,9 @@ public class ChatService {
         // Redis INCR로 sequenceId 발급
         String seqKey = "MSG:SEQ:" + roomId;
         Long sequenceId = redisTemplate.opsForValue().increment(seqKey);
+        if (sequenceId == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+        }
 
         MessageType type;
         try {
@@ -271,6 +274,9 @@ public class ChatService {
         // 시스템 메시지 생성
         String seqKey = "MSG:SEQ:" + roomId;
         Long sequenceId = redisTemplate.opsForValue().increment(seqKey);
+        if (sequenceId == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+        }
 
         User leaver = room.getUserA().getId().equals(userId) ? room.getUserA() : room.getUserB();
         Message systemMsg = Message.createSystem(room,
