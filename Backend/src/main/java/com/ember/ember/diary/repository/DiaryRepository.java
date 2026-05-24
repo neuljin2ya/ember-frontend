@@ -65,6 +65,7 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
             WHERE d.user.id != :userId
               AND d.user.id NOT IN :excludeUserIds
               AND d.id < :cursor
+              AND d.id = (SELECT MAX(d2.id) FROM Diary d2 WHERE d2.user = d.user)
             ORDER BY d.id DESC
             """)
     List<Diary> findExploreWithCursor(
@@ -74,12 +75,13 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
             Pageable pageable);
 
     /**
-     * 일기 탐색 — 첫 페이지 (커서 없는 경우).
+     * 일기 탐색 — 첫 페이지 (커서 없는 경우). 유저 당 최신 일기 1개만 노출.
      */
     @Query("""
             SELECT d FROM Diary d JOIN FETCH d.user u
             WHERE d.user.id != :userId
               AND d.user.id NOT IN :excludeUserIds
+              AND d.id = (SELECT MAX(d2.id) FROM Diary d2 WHERE d2.user = d.user)
             ORDER BY d.id DESC
             """)
     List<Diary> findExploreFirstPage(
