@@ -15,6 +15,7 @@ import com.ember.ember.exchange.repository.ExchangeRoomRepository;
 import com.ember.ember.content.service.ContentScanResult;
 import com.ember.ember.content.service.ContentScanService;
 import com.ember.ember.global.security.xss.XssSanitizer;
+import com.ember.ember.global.notification.FcmService;
 import com.ember.ember.global.exception.BusinessException;
 import com.ember.ember.global.response.ErrorCode;
 import com.ember.ember.notification.domain.Notification;
@@ -65,6 +66,7 @@ public class ChatService {
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
     private final ContentScanService contentScanService;
+    private final FcmService fcmService;
 
     /** 6.1 채팅 시작 (교환일기 → 채팅방 생성) */
     @Transactional
@@ -241,6 +243,12 @@ public class ChatService {
         }
 
         messageRepository.save(message);
+
+        // 상대방에게 FCM 푸시 (앱 백그라운드 시 알림)
+        User partner = room.getPartner(userId);
+        fcmService.sendPushToUser(partner.getId(),
+                sender.getNickname() + "님의 메시지",
+                sanitizedContent.length() > 50 ? sanitizedContent.substring(0, 50) + "..." : sanitizedContent);
 
         log.debug("[ChatService] 메시지 전송 — roomId={}, seqId={}", roomId, sequenceId);
 
