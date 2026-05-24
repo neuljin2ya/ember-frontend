@@ -31,12 +31,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .toArray(String[]::new);
 
         registry.addEndpoint("/ws/chat")
-                .setAllowedOrigins(origins)
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
 
         // SockJS 없는 순수 WebSocket 엔드포인트 (Flutter용)
         registry.addEndpoint("/ws/chat")
-                .setAllowedOrigins(origins);
+                .setAllowedOriginPatterns("*");
     }
 
     @Override
