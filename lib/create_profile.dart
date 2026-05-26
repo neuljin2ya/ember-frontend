@@ -399,7 +399,7 @@ class _CreateProfileState extends State<CreateProfile> {
                               final birthDate =
                                   '${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}';
 
-                              await ApiService.postProfile(
+                              final profileRes = await ApiService.postProfile(
                                 nickname: nickname,
                                 realName: _realNameController.text.trim(),
                                 gender: _selectedGender,
@@ -407,6 +407,10 @@ class _CreateProfileState extends State<CreateProfile> {
                                 sido: sido,
                                 sigungu: sigungu,
                               );
+                              final code = profileRes['code']?.toString() ?? '';
+                              if (code != '200' && code != '201') {
+                                throw Exception(profileRes['message'] ?? '프로필 등록에 실패했어요.');
+                              }
                               await ApiService.updateProfile(
                                 realName: _realNameController.text.trim(),
                                 school: _occupationController.text.trim(),
