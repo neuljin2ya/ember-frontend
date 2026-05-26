@@ -1,9 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'profile_image_picker.dart';
 import 'city_search_field.dart';
 import 'keyword_selector.dart';
-import 'top_nav_bar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'diary_screen.dart';
 import 'api_service.dart';
@@ -25,14 +22,12 @@ class _CreateProfileState extends State<CreateProfile> {
   int _currentPage = 0;
   String _selectedGender = 'MALE';
   DateTime? _selectedBirthDate;
-  File? _profileImage;
 
   bool get _isFirstPageComplete =>
       _realNameController.text.trim().isNotEmpty &&
       _locationController.text.trim().isNotEmpty &&
       _occupationController.text.trim().isNotEmpty &&
-      _selectedBirthDate != null &&
-      _profileImage != null;
+      _selectedBirthDate != null;
 
   @override
   void initState() {
@@ -333,13 +328,22 @@ class _CreateProfileState extends State<CreateProfile> {
                       _WhiteCard(
                         height: cardHeight,
                         middle: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            ProfileImagePicker(
-                              onImageChanged: (file) {
-                                setState(() => _profileImage = file);
-                              },
+                            Container(
+                              width: 92,
+                              height: 92,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFEFE7),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person_outline,
+                                color: Color(0xFFE37474),
+                                size: 46,
+                              ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             const Text(
                               '자신의 프로필 작성하기',
                               style: TextStyle(
@@ -403,11 +407,6 @@ class _CreateProfileState extends State<CreateProfile> {
                                 sido: sido,
                                 sigungu: sigungu,
                               );
-                              if (_profileImage != null) {
-                                await ApiService.saveLocalProfileImagePath(
-                                  _profileImage!.path,
-                                );
-                              }
                               await ApiService.updateProfile(
                                 realName: _realNameController.text.trim(),
                                 school: _occupationController.text.trim(),

@@ -102,6 +102,27 @@ class _HomeBodyState extends State<_HomeBody> {
   String? _mySido;
   String? _mySigungu;
   String? _myAgeGroup;
+  String? _selectedSido;
+
+  static const List<String> _sidoOptions = [
+    '서울특별시',
+    '부산광역시',
+    '대구광역시',
+    '인천광역시',
+    '광주광역시',
+    '대전광역시',
+    '울산광역시',
+    '세종특별자치시',
+    '경기도',
+    '강원도',
+    '충청북도',
+    '충청남도',
+    '전라북도',
+    '전라남도',
+    '경상북도',
+    '경상남도',
+    '제주특별자치도',
+  ];
 
   @override
   void initState() {
@@ -136,14 +157,34 @@ class _HomeBodyState extends State<_HomeBody> {
     return '${(age ~/ 10) * 10}대';
   }
 
+  String? get _activeSido {
+    if (!_filterRegion) return null;
+    return _selectedSido ?? _mySido;
+  }
+
+  String? get _activeSigungu {
+    if (!_filterRegion || _selectedSido != null) return null;
+    return _mySigungu;
+  }
+
+  String get _regionFilterLabel {
+    if (!_filterRegion) return '전체 지역';
+    if (_selectedSido != null) return _selectedSido!;
+    final myRegion = [
+      _mySido,
+      _mySigungu,
+    ].where((value) => value != null && value.trim().isNotEmpty).join(' ');
+    return myRegion.isEmpty ? '내 지역' : '내 지역 ($myRegion)';
+  }
+
   Future<void> _loadDiaries() async {
     try {
       Map<String, dynamic> data;
       if (_tabIndex == 0) {
         data = await ApiService.exploreDiaries(
           isRecent: true,
-          sido: _filterRegion ? _mySido : null,
-          sigungu: _filterRegion ? _mySigungu : null,
+          sido: _activeSido,
+          sigungu: _activeSigungu,
           ageGroup: _filterAge ? _myAgeGroup : null,
         );
         final diaries = data['data']?['diaries'] ?? [];
@@ -209,8 +250,8 @@ class _HomeBodyState extends State<_HomeBody> {
 
     return ApiService.exploreDiaries(
       isRecent: false,
-      sido: _filterRegion ? _mySido : null,
-      sigungu: _filterRegion ? _mySigungu : null,
+      sido: _activeSido,
+      sigungu: _activeSigungu,
       ageGroup: _filterAge ? _myAgeGroup : null,
       keywordFilter: true,
     );
@@ -487,34 +528,85 @@ class _HomeBodyState extends State<_HomeBody> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _mySido == null
-                                              ? '지역 필터링'
-                                              : '내 지역 필터링 ($_mySido ${_mySigungu ?? ''})',
-                                          style: const TextStyle(
-                                            color: Color(0xFFE37474),
-                                            fontSize: 16,
-                                            fontFamily: 'Pretendard',
-                                            fontWeight: FontWeight.w600,
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        '지역 필터링',
+                                        style: const TextStyle(
+                                          color: Color(0xFFE37474),
+                                          fontSize: 16,
+                                          fontFamily: 'Pretendard',
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    DropdownButtonFormField<String>(
+                                      initialValue: _filterRegion
+                                          ? (_selectedSido ?? '내 지역')
+                                          : '전체',
+                                      decoration: InputDecoration(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 12,
+                                            ),
+                                        filled: true,
+                                        fillColor: const Color(0xFFFFF5F5),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      iconEnabledColor: const Color(0xFFE37474),
+                                      items: [
+                                        const DropdownMenuItem(
+                                          value: '전체',
+                                          child: Text('전체 지역'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: '내 지역',
+                                          child: Text(
+                                            _mySido == null
+                                                ? '내 지역'
+                                                : '내 지역 ($_mySido ${_mySigungu ?? ''})',
                                           ),
                                         ),
-                                        Switch(
-                                          value: _filterRegion,
-                                          activeColor: const Color(0xFFE37474),
-                                          onChanged: (v) {
-                                            setModalState(() {});
-                                            setState(() {
-                                              _filterRegion = v;
-                                              _isLoading = true;
-                                            });
-                                            _loadDiaries();
-                                          },
+                                        ..._sidoOptions.map(
+                                          (sido) => DropdownMenuItem(
+                                            value: sido,
+                                            child: Text(sido),
+                                          ),
                                         ),
                                       ],
+                                      onChanged: (value) {
+                                        setModalState(() {});
+                                        setState(() {
+                                          _filterRegion = value != '전체';
+                                          _selectedSido =
+                                              value == null ||
+                                                  value == '전체' ||
+                                                  value == '내 지역'
+                                              ? null
+                                              : value;
+                                          _isLoading = true;
+                                        });
+                                        _loadDiaries();
+                                      },
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        '현재 적용: $_regionFilterLabel',
+                                        style: const TextStyle(
+                                          color: Color(0xFF9A7A76),
+                                          fontSize: 12,
+                                          fontFamily: 'Pretendard',
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(height: 12),
                                     Row(

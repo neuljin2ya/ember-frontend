@@ -96,6 +96,29 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
         status == 'ARCHIVED';
   }
 
+  String _statusLabel(dynamic value) {
+    switch (value?.toString().toUpperCase()) {
+      case 'WAITING_PARTNER':
+        return '상대 선택을 기다리는 중';
+      case 'CHAT_CREATED':
+        return '채팅방이 생성되었어요';
+      case 'AUTO_EXTENDED':
+        return '교환일기가 한 라운드 더 이어져요';
+      case 'MATCH_ENDED':
+        return '매칭이 종료되었어요';
+      case 'CHAT_CONNECTED':
+        return '채팅으로 이어졌어요';
+      case 'COMPLETED':
+        return '교환일기 완료';
+      case 'ARCHIVED':
+        return '보관된 교환일기';
+      case 'ACTIVE':
+        return '교환일기 진행 중';
+      default:
+        return '';
+    }
+  }
+
   Future<void> _openReport() async {
     if (_isReportLoading) return;
     setState(() => _isReportLoading = true);
@@ -204,8 +227,12 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
                                       if (currentTurn != null)
                                         '$currentTurn번째 턴 진행 중',
                                       if (deadline.isNotEmpty) '마감 $deadline',
-                                      if (_nextStepStatus?['status'] != null)
-                                        '관계 확장 ${_nextStepStatus!['status']}',
+                                      if (_statusLabel(
+                                        _nextStepStatus?['status'],
+                                      ).isNotEmpty)
+                                        _statusLabel(
+                                          _nextStepStatus?['status'],
+                                        ),
                                     ].join(' · '),
                                     style: const TextStyle(
                                       color: Color(0xFF391713),
