@@ -315,6 +315,61 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _handleSafetyAction(String action) async {
+    final targetId = _partnerUserId();
+    if (targetId == null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('상대방 정보를 불러올 수 없어요.')));
+      return;
+    }
+    if (action == 'report') {
+      final reason = await showDialog<String>(
+        context: context,
+        builder: (ctx) {
+          final controller = TextEditingController();
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('신고하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            content: TextField(
+              controller: controller,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: '신고 사유를 입력해주세요 (10자 이상)', border: OutlineInputBorder()),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+              TextButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('신고', style: TextStyle(color: Color(0xFFEF4444)))),
+            ],
+          );
+        },
+      );
+      if (reason == null || reason.isEmpty) return;
+      if (reason.length < 10) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신고 사유는 10자 이상 입력해주세요.')));
+        return;
+      }
+      final success = await ApiService.reportUser(targetId, reason);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(success ? '신고가 접수되었어요.' : '신고를 접수할 수 없어요.')));
+    } else if (action == 'block') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('차단하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          content: const Text('이 사용자를 차단하면 매칭, 교환일기, 채팅이 모두 종료됩니다. 차단하시겠어요?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('차단', style: TextStyle(color: Color(0xFFEF4444)))),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+      final success = await ApiService.blockUser(targetId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(success ? '사용자를 차단했어요.' : '차단할 수 없어요.')));
+        if (success) Navigator.pop(context);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -439,6 +494,14 @@ class _ChatScreenState extends State<ChatScreen> {
               PopupMenuItem(value: 'request', child: Text('커플 신청')),
               PopupMenuItem(value: 'accept', child: Text('커플 수락')),
               PopupMenuItem(value: 'reject', child: Text('커플 거절')),
+            ],
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Color(0xFF9CA3AF)),
+            onSelected: _handleSafetyAction,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'report', child: Text('신고하기', style: TextStyle(color: Color(0xFFEF4444)))),
+              PopupMenuItem(value: 'block', child: Text('차단하기', style: TextStyle(color: Color(0xFFEF4444)))),
             ],
           ),
           TextButton(
