@@ -77,7 +77,7 @@ class _SocialLoginState extends State<SocialLogin> {
       final onboardingCompleted =
           data['onboardingCompleted'] ??
           result['onboardingCompleted'] ??
-          role == 'ROLE_USER';
+          false;
 
       if (restoreToken != null) {
         await ApiService.clearTokens();
