@@ -83,3 +83,7 @@ docs/
 # PEM 키(EC2 SSH 등) — 유출 방지
 *.pem
 db_dashboard.html
+
+# DB 대시보드 진짜 키 박힌 버전(EC2 전용) — 공유 금지
+# 공유는 dashboard.share.html (마스킹 버전) 사용
+dashboard.html
