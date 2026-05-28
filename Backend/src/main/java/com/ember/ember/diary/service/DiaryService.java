@@ -195,6 +195,7 @@ public class DiaryService {
         // AI 키워드 조회
         List<DiaryKeyword> keywords = diaryKeywordRepository.findByDiaryId(diaryId);
 
+        List<DiaryDetailResponse.TagItem> personalityTags = filterTags(keywords, DiaryKeyword.TagType.RELATIONSHIP_STYLE);
         List<DiaryDetailResponse.TagItem> emotionTags = filterTags(keywords, DiaryKeyword.TagType.EMOTION);
         List<DiaryDetailResponse.TagItem> lifestyleTags = filterTags(keywords, DiaryKeyword.TagType.LIFESTYLE);
         List<DiaryDetailResponse.TagItem> toneTags = filterTags(keywords, DiaryKeyword.TagType.TONE);
@@ -205,6 +206,7 @@ public class DiaryService {
                 diary.getCreatedAt().format(ISO_KST),
                 diary.getSummary(),
                 diary.getCategory(),
+                personalityTags.isEmpty() ? null : personalityTags,
                 emotionTags.isEmpty() ? null : emotionTags,
                 lifestyleTags.isEmpty() ? null : lifestyleTags,
                 toneTags.isEmpty() ? null : toneTags,

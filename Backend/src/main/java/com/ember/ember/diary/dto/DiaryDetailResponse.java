@@ -9,6 +9,7 @@ public record DiaryDetailResponse(
         String createdAt,
         String summary,
         String category,
+        List<TagItem> personalityTags,
         List<TagItem> emotionTags,
         List<TagItem> lifestyleTags,
         List<TagItem> toneTags,

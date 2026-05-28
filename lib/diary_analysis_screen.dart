@@ -84,7 +84,7 @@ class _DiaryAnalysisScreenState extends State<DiaryAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     final summary = decodeHtmlEntities(_diary?['summary'] ?? '');
-    final personality = _tags('personalityKeywords');
+    final personality = _tags('personalityTags');
     final emotions = _tags('emotionTags');
     final lifestyle = _tags('lifestyleTags');
     final tone = _tags('toneTags');

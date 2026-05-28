@@ -147,6 +147,11 @@
         <!-- 유저 관리 -->
         <div style="font-size:0.72rem;color:#d2a8ff;margin-bottom:6px;">유저 관리</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+            <select id="newUserGender" style="background:#0d1117;border:1px solid #30363d;color:#58a6ff;padding:4px 8px;border-radius:6px;font-size:0.78rem;">
+                <option value="RANDOM">성별 랜덤</option>
+                <option value="MALE">남성</option>
+                <option value="FEMALE">여성</option>
+            </select>
             <button onclick="createTestUserFull()" class="api-btn" style="border-color:#3fb950;color:#3fb950;" title="신규 유저 생성 → 약관 동의 → 프로필 등록 → 이상형 키워드 설정까지 한 번에 자동. ROLE_USER로 승격됨">유저 + 온보딩 완료</button>
             <button onclick="deleteSelectedUser()" class="api-btn" style="border-color:#da3633;color:#da3633;" title="좌측에서 선택한 유저를 일기/매칭/교환방/채팅까지 모두 완전 삭제 (FK 의존 순서대로)">선택 유저 삭제</button>
         </div>
@@ -1003,7 +1008,8 @@ async function createTestUserFull() {
         // 3. 프로필 등록
         const nick = NICKNAMES[Math.floor(Math.random()*NICKNAMES.length)] + Math.floor(Math.random()*100);
         const region = REGIONS[Math.floor(Math.random()*REGIONS.length)];
-        const gender = Math.random() > 0.5 ? 'MALE' : 'FEMALE';
+        const genderSelect = document.getElementById('newUserGender').value;
+        const gender = genderSelect === 'RANDOM' ? (Math.random() > 0.5 ? 'MALE' : 'FEMALE') : genderSelect;
         const realName = gender === 'MALE' ? REAL_NAMES_M[Math.floor(Math.random()*REAL_NAMES_M.length)] : REAL_NAMES_F[Math.floor(Math.random()*REAL_NAMES_F.length)];
         const birthYear = 1995 + Math.floor(Math.random()*8);
         await fetch(`${API_BASE}/api/users/profile`, { method: 'POST', headers: h, body: JSON.stringify({

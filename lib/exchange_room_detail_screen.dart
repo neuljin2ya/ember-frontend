@@ -24,11 +24,18 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
   Map<String, dynamic>? _nextStepStatus;
   bool _isLoading = true;
   bool _isReportLoading = false;
+  int? _myUserId;
 
   @override
   void initState() {
     super.initState();
+    _loadMyUserId();
     _loadRoom();
+  }
+
+  Future<void> _loadMyUserId() async {
+    final userId = await ApiService.getCurrentUserId();
+    if (mounted) setState(() => _myUserId = userId);
   }
 
   Future<void> _loadRoom() async {
@@ -270,10 +277,13 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
                                       final content =
                                           diary['content']?.toString() ?? '';
                                       final turn = diary['turnNumber'];
+                                      final authorId = diary['authorId'];
+                                      final isMine = _myUserId != null && authorId == _myUserId;
+                                      final authorLabel = isMine ? '나' : _partnerNickname;
                                       return _ExchangeDiaryTile(
                                         title: turn == null
-                                            ? '교환일기'
-                                            : '$turn번째 교환일기',
+                                            ? '$authorLabel의 교환일기'
+                                            : '$authorLabel의 $turn번째 교환일기',
                                         preview: content,
                                         date: _formatDate(diary['createdAt']),
                                         reaction:
@@ -454,9 +464,9 @@ class _ExchangeReportDialog extends StatelessWidget {
     final lifestyles = _stringList('lifestylePatterns');
     final similarity = report['emotionSimilarity']?.toString();
     final summary =
+        report['aiDescription'] ??
         report['summary'] ??
         report['description'] ??
-        report['comment'] ??
         '두 사람의 교환일기에서 발견한 공통점을 정리했어요.';
 
     return AlertDialog(
