@@ -13,6 +13,9 @@ public record UserMeResponse(
         @Schema(description = "사용자 ID")
         Long userId,
 
+        @Schema(description = "실명")
+        String realName,
+
         @Schema(description = "닉네임")
         String nickname,
 
@@ -73,6 +76,7 @@ public record UserMeResponse(
 
         return new UserMeResponse(
                 user.getId(),
+                user.getRealName(),
                 user.getNickname(),
                 user.getBirthDate() != null ? user.getBirthDate().toString() : null,
                 user.getGender() != null ? user.getGender().name() : null,
