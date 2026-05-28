@@ -22,6 +22,7 @@ class _ExchangeDiaryDetailScreenState extends State<ExchangeDiaryDetailScreen> {
   Map<String, dynamic>? _diary;
   bool _isLoading = true;
   String? _myReaction;
+  int? _myUserId;
 
   final List<Map<String, dynamic>> _reactions = [
     {'type': 'HEART', 'emoji': '❤️'},
@@ -33,8 +34,17 @@ class _ExchangeDiaryDetailScreenState extends State<ExchangeDiaryDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _loadMyUserId();
     _loadDiary();
   }
+
+  Future<void> _loadMyUserId() async {
+    final userId = await ApiService.getCurrentUserId();
+    if (mounted) setState(() => _myUserId = userId);
+  }
+
+  bool get _isMine =>
+      _myUserId != null && _diary?['authorId'] == _myUserId;
 
   Future<void> _loadDiary() async {
     try {
@@ -85,7 +95,7 @@ class _ExchangeDiaryDetailScreenState extends State<ExchangeDiaryDetailScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   Text(
-                    '${widget.partnerNickname}의 일기',
+                    _isMine ? '나의 일기' : '${widget.partnerNickname}의 일기',
                     style: const TextStyle(
                       color: Color(0xFFF8F8F8),
                       fontSize: 22,
@@ -123,7 +133,7 @@ class _ExchangeDiaryDetailScreenState extends State<ExchangeDiaryDetailScreen> {
                                 children: [
                                   // 날짜
                                   Text(
-                                    _diary?['date'] ?? '',
+                                    _diary?['readAt']?.toString().split('T').first ?? '',
                                     style: const TextStyle(
                                       color: Color(0xFFE37474),
                                       fontSize: 13,
@@ -206,84 +216,6 @@ class _ExchangeDiaryDetailScreenState extends State<ExchangeDiaryDetailScreen> {
                               }).toList(),
                             ),
                           ),
-                          // 리액션 버튼 Container 아래에
-                          if (_diary?['isLastTurn'] == true)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        await ApiService.postNextStep(
-                                          widget.roomId,
-                                          'CHAT',
-                                        );
-                                        if (context.mounted)
-                                          Navigator.pop(context);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFFE37474,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        '채팅으로 이어가기',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontFamily: 'Pretendard',
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () async {
-                                        await ApiService.postNextStep(
-                                          widget.roomId,
-                                          'CONTINUE',
-                                        );
-                                        if (context.mounted)
-                                          Navigator.pop(context);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFFA1ACC3,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        '교환일기 계속하기',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontFamily: 'Pretendard',
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
               ),
