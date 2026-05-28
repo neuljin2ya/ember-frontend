@@ -1480,45 +1480,36 @@ class _FriendsBodyState extends State<_FriendsBody> {
                                           .where((e) => e.isNotEmpty)
                                           .toList()
                                     : <String>[];
-                                return _MessageItem(
-                                  name:
-                                      request['fromUserNickname'] ??
-                                      request['nickname'] ??
-                                      request['senderNickname'] ??
-                                      '알 수 없음',
+                                final matchingId = request['matchingId'] ?? request['id'] ?? 0;
+                                final nickname = request['fromUserNickname'] ?? request['nickname'] ?? request['senderNickname'] ?? '알 수 없음';
+                                final ageGroup = request['fromUserAgeGroup'] ?? request['ageGroup'] ?? '';
+                                return _MatchingRequestCard(
+                                  nickname: nickname,
+                                  ageGroup: ageGroup,
                                   preview: decodeHtmlEntities(preview),
-                                  isNew: true,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => DiaryDetailScreen(
-                                          title: decodeHtmlEntities(preview),
-                                          time:
-                                              request['fromUserAgeGroup'] ??
-                                              request['ageGroup'] ??
-                                              '',
-                                          diaryId:
-                                              request['diaryId'] ??
-                                              request['id'] ??
-                                              0,
-                                          showBottomNav: false,
-                                          showMatchingButtons: true,
-                                          matchingId:
-                                              request['matchingId'] ??
-                                              request['id'] ??
-                                              0,
-                                          initialContent: decodeHtmlEntities(
-                                            preview,
-                                          ),
-                                          initialKeywords: keywords,
-                                        ),
-                                      ),
-                                    ).then((accepted) {
-                                      if (accepted == true) {
-                                        setState(() => _tabIndex = 0);
-                                      }
+                                  keywords: keywords,
+                                  onAccept: () async {
+                                    try {
+                                      await ApiService.acceptMatchingResponse(matchingId as int);
+                                      if (!mounted) return;
+                                      setState(() {
+                                        _requests.removeAt(index);
+                                        _tabIndex = 0;
+                                      });
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('매칭을 수락했어요! 교환일기가 시작됩니다.')),
+                                      );
                                       _loadExchangeRooms();
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('수락 실패: $e')),
+                                      );
+                                    }
+                                  },
+                                  onReject: () {
+                                    setState(() {
+                                      _requests.removeAt(index);
                                     });
                                   },
                                 );
@@ -1784,6 +1775,102 @@ class _MessageItem extends StatelessWidget {
               const Icon(Icons.chevron_right, color: Color(0xFF391713)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MatchingRequestCard extends StatelessWidget {
+  final String nickname, ageGroup, preview;
+  final List<String> keywords;
+  final VoidCallback onAccept, onReject;
+
+  const _MatchingRequestCard({
+    required this.nickname,
+    required this.ageGroup,
+    required this.preview,
+    required this.keywords,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFE0DB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEFEC),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.person, color: Color(0xFFE37474), size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(nickname, style: const TextStyle(fontSize: 16, fontFamily: 'Pretendard', fontWeight: FontWeight.w700, color: Color(0xFF391713))),
+                    if (ageGroup.isNotEmpty)
+                      Text(ageGroup, style: const TextStyle(fontSize: 12, fontFamily: 'Pretendard', color: Color(0xFF9CA3AF))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(preview, style: const TextStyle(fontSize: 14, fontFamily: 'Pretendard', color: Color(0xFF6B7280), height: 1.5), maxLines: 3, overflow: TextOverflow.ellipsis),
+          if (keywords.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6, runSpacing: 4,
+              children: keywords.map((k) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: const Color(0xFFFFF1F0), borderRadius: BorderRadius.circular(12)),
+                child: Text(k, style: const TextStyle(fontSize: 12, fontFamily: 'Pretendard', color: Color(0xFFE37474))),
+              )).toList(),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onReject,
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD1D5DB)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 12)),
+                  child: const Text('넘기기', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: onAccept,
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE37474), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12)),
+                  child: const Text('수락하기', style: TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

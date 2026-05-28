@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api_service.dart';
+import 'chat_screen.dart';
 import 'exchange_diary_detail_screen.dart';
 import 'exchange_diary_write_screen.dart';
 
@@ -86,12 +87,36 @@ class _ExchangeRoomDetailScreenState extends State<ExchangeRoomDetailScreen> {
   }
 
   Future<void> _chooseNextStep(String choice) async {
-    final success = await ApiService.postNextStep(widget.roomId, choice);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? '선택을 보냈어요' : '선택을 보낼 수 없어요')),
-    );
-    if (success) _loadRoom();
+    try {
+      final result = await ApiService.postNextStep(widget.roomId, choice);
+      if (!mounted) return;
+      final status = result['status']?.toString() ?? '';
+      final chatRoomId = result['chatRoomId'] ?? result['chatRoomUuid'];
+      if (status == 'CHAT_CREATED' && chatRoomId != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('채팅방이 생성되었어요!')),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              roomId: chatRoomId is int ? chatRoomId : int.tryParse(chatRoomId.toString()) ?? 0,
+              name: _partnerNickname,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(status == 'WAITING' ? '선택을 보냈어요. 상대의 선택을 기다리고 있어요.' : '선택을 보냈어요')),
+        );
+        _loadRoom();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('선택 실패: $e')),
+      );
+    }
   }
 
   bool get _canViewReport {

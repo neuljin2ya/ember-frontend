@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:io';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_handler.dart';
@@ -23,6 +24,8 @@ class _ChatScreenState extends State<ChatScreen> {
   int? _myUserId;
   Map<String, dynamic>? _partnerProfile;
   StompUnsubscribe? _wsSub;
+  Timer? _couplePollingTimer;
+  Map<String, dynamic>? _coupleStatus;
 
   String _partnerName() {
     return _profileText(_partnerProfile, [
@@ -292,27 +295,158 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _handleCoupleAction(String action) async {
-    final messenger = ScaffoldMessenger.of(context);
+  Future<void> _checkCoupleStatus() async {
     try {
-      final success = switch (action) {
-        'request' => await ApiService.postCoupleRequest(widget.roomId),
-        'accept' => await ApiService.acceptCouple(widget.roomId),
-        'reject' => await ApiService.rejectCouple(widget.roomId),
-        _ => false,
-      };
+      final status = await ApiService.getCoupleStatus(widget.roomId);
       if (!mounted) return;
-      final message = switch (action) {
-        'request' => success ? '커플 신청을 보냈어요.' : '커플 신청을 보낼 수 없어요.',
-        'accept' => success ? '커플 요청을 수락했어요.' : '커플 요청을 수락할 수 없어요.',
-        'reject' => success ? '커플 요청을 거절했어요.' : '커플 요청을 거절할 수 없어요.',
-        _ => '처리할 수 없어요.',
-      };
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      final prev = _coupleStatus;
+      setState(() => _coupleStatus = status);
+      // 커플 확정 감지 → 축하 화면
+      if (status['isCouple'] == true && prev?['isCouple'] != true) {
+        _couplePollingTimer?.cancel();
+        _showCoupleCelebration();
+      }
+    } catch (_) {}
+  }
+
+  bool get _showCoupleRequestBanner {
+    final s = _coupleStatus;
+    if (s == null) return false;
+    return s['hasPendingRequest'] == true && s['isRequester'] != true;
+  }
+
+  Future<void> _handleCoupleHeart() async {
+    // 먼저 커플 요청 시도 — 상대가 이미 보냈으면 에러 → 수락/거절 표시
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('커플 신청', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 20)),
+        content: Text('${widget.name}님에게 커플 신청을 보낼까요?', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 14, height: 1.5, color: Color(0xFF6B7280))),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소', style: TextStyle(color: Color(0xFF9CA3AF)))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE37474), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+            child: const Text('신청하기', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await ApiService.postCoupleRequest(widget.roomId);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('커플 신청을 보냈어요!')));
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('처리 실패: $e')));
+      final msg = e.toString();
+      // 이미 요청이 존재 → 상대가 보낸 것일 수 있음 → 수락/거절 표시
+      if (msg.contains('이미') || msg.contains('CR003') || msg.contains('존재')) {
+        _showCoupleResponseDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('신청 실패: $e')));
+      }
     }
+  }
+
+  Future<void> _showCoupleRequestDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('커플 신청', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 20)),
+        content: Text('${widget.name}님에게 커플 신청을 보낼까요?\n상대가 수락하면 커플이 됩니다.', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 14, height: 1.5, color: Color(0xFF6B7280))),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소', style: TextStyle(color: Color(0xFF9CA3AF)))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, 'request'),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE37474), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+            child: const Text('신청하기', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (result == 'request') {
+      try {
+        await ApiService.postCoupleRequest(widget.roomId);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('커플 신청을 보냈어요!')));
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('신청 실패: $e')));
+      }
+    }
+  }
+
+  Future<void> _showCoupleResponseDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: const Icon(Icons.favorite, color: Color(0xFFE37474), size: 48),
+        title: const Text('커플 요청이 왔어요!', textAlign: TextAlign.center, style: TextStyle(fontFamily: 'Pretendard', fontWeight: FontWeight.w700, fontSize: 20)),
+        content: Text('${widget.name}님이 커플 신청을 보냈어요.\n수락하시겠어요?', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Pretendard', fontSize: 14, height: 1.5, color: Color(0xFF6B7280))),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'reject'),
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD1D5DB)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: const Text('거절하기', style: TextStyle(color: Color(0xFF9CA3AF))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, 'accept'),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE37474), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+            child: const Text('수락하기', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    try {
+      if (result == 'accept') {
+        await ApiService.acceptCouple(widget.roomId);
+        if (mounted) _showCoupleCelebration();
+      } else {
+        await ApiService.rejectCouple(widget.roomId);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('커플 요청을 거절했어요.')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('처리 실패: $e')));
+    }
+  }
+
+  void _showCoupleCelebration() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🎉', style: TextStyle(fontSize: 64)),
+              const SizedBox(height: 16),
+              const Text('축하합니다!', style: TextStyle(fontSize: 24, fontFamily: 'Pretendard', fontWeight: FontWeight.w700, color: Color(0xFFE37474))),
+              const SizedBox(height: 8),
+              Text('${widget.name}님과\n커플이 되었어요!', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontFamily: 'Pretendard', height: 1.5, color: Color(0xFF391713))),
+              const SizedBox(height: 8),
+              const Text('서로의 진심이 통했네요.\n앞으로도 좋은 시간 보내세요!', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontFamily: 'Pretendard', color: Color(0xFF9CA3AF), height: 1.5)),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE37474), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: const Text('확인', style: TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _handleSafetyAction(String action) async {
@@ -377,6 +511,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _loadPartnerProfile();
     _loadMessages();
     _connectWebSocket();
+    _checkCoupleStatus();
+    _couplePollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkCoupleStatus());
   }
 
   Future<void> _connectWebSocket() async {
@@ -437,6 +573,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _couplePollingTimer?.cancel();
     _wsSub?.call();
     _controller.dispose();
     _scrollController.dispose();
@@ -487,14 +624,10 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         centerTitle: true,
         actions: [
-          PopupMenuButton<String>(
+          IconButton(
             icon: const Icon(Icons.favorite_border, color: Color(0xFFE37474)),
-            onSelected: _handleCoupleAction,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'request', child: Text('커플 신청')),
-              PopupMenuItem(value: 'accept', child: Text('커플 수락')),
-              PopupMenuItem(value: 'reject', child: Text('커플 거절')),
-            ],
+            onPressed: _handleCoupleHeart,
+            tooltip: '커플',
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Color(0xFF9CA3AF)),
@@ -551,6 +684,70 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
+
+          // 커플 요청 배너
+          if (_showCoupleRequestBanner)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFFFFF1F0), Color(0xFFFFE8EC)]),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFFCDD2)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.favorite, color: Color(0xFFE37474), size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${_coupleStatus?['requesterNickname'] ?? '상대방'}님이\n커플 요청을 보냈어요!',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 15, fontFamily: 'Pretendard', fontWeight: FontWeight.w600, color: Color(0xFF391713), height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            try {
+                              await ApiService.rejectCouple(widget.roomId);
+                              if (mounted) {
+                                setState(() => _coupleStatus = null);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('커플 요청을 거절했어요.')));
+                              }
+                            } catch (e) {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('거절 실패: $e')));
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD1D5DB)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 12)),
+                          child: const Text('거절', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              await ApiService.acceptCouple(widget.roomId);
+                              if (mounted) {
+                                setState(() => _coupleStatus = {'isCouple': true});
+                                _couplePollingTimer?.cancel();
+                                _showCoupleCelebration();
+                              }
+                            } catch (e) {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('수락 실패: $e')));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE37474), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12)),
+                          child: const Text('수락', style: TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
 
           // 입력창
           SafeArea(

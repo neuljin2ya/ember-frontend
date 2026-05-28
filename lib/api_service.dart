@@ -236,7 +236,8 @@ class ApiService {
     http.Response response,
     Map<String, dynamic> decoded,
   ) {
-    return response.statusCode == 401 && decoded['code']?.toString() == 'A002';
+    return response.statusCode == 401 &&
+        (decoded['code']?.toString() == 'A002' || decoded['code']?.toString() == '401');
   }
 
   static Future<http.Response> _sendWithAuthRetry(
@@ -659,6 +660,9 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getMyProfile() async {
     final response = await _getWithAuth(Uri.parse('$baseUrl/api/users/me'));
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw Exception('인증 만료');
+    }
     final data = _payload(_decodeMap(response));
     final localImagePath = await getLocalProfileImagePath();
     if (localImagePath != null && localImagePath.isNotEmpty) {
@@ -816,12 +820,12 @@ class ApiService {
   }
 
   // 4턴 완료 후 관계 확장
-  static Future<bool> postNextStep(int roomId, String choice) async {
+  static Future<Map<String, dynamic>> postNextStep(int roomId, String choice) async {
     final response = await _postWithAuth(
       Uri.parse('$baseUrl/api/exchange-rooms/$roomId/next-step'),
       body: jsonEncode({'choice': choice}), // 'CHAT' or 'CONTINUE'
     );
-    return response.statusCode == 200 || response.statusCode == 201;
+    return _payload(_decodeMap(response));
   }
 
   // FCM 토큰 등록
@@ -1073,7 +1077,18 @@ class ApiService {
     final response = await _postWithAuth(
       Uri.parse('$baseUrl/api/chat-rooms/$roomId/couple-request'),
     );
-    return response.statusCode == 200 || response.statusCode == 201;
+    if (response.statusCode >= 400) {
+      final data = _decodeMap(response);
+      throw Exception(data['message'] ?? '커플 요청 실패');
+    }
+    return true;
+  }
+
+  static Future<Map<String, dynamic>> getCoupleStatus(int roomId) async {
+    final response = await _getWithAuth(
+      Uri.parse('$baseUrl/api/chat-rooms/$roomId/couple-status'),
+    );
+    return _payload(_decodeMap(response));
   }
 
   static Future<bool> acceptCouple(int roomId) async {

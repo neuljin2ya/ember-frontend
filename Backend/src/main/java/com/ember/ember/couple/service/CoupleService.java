@@ -7,6 +7,7 @@ import com.ember.ember.couple.domain.CoupleRequest;
 import com.ember.ember.couple.domain.CoupleRequest.CoupleRequestStatus;
 import com.ember.ember.couple.dto.CoupleAcceptResponse;
 import com.ember.ember.couple.dto.CoupleRequestResponse;
+import com.ember.ember.couple.dto.CoupleStatusResponse;
 import com.ember.ember.couple.repository.CoupleRepository;
 import com.ember.ember.couple.repository.CoupleRequestRepository;
 import com.ember.ember.global.exception.BusinessException;
@@ -155,6 +156,54 @@ public class CoupleService {
         notificationRepository.save(notification);
 
         log.info("[CoupleService] 커플 요청 거절 — chatRoomId={}", chatRoomId);
+    }
+
+    /** 커플 요청 상태 조회 */
+    @Transactional(readOnly = true)
+    public CoupleStatusResponse getCoupleStatus(Long userId, Long chatRoomId) {
+        ChatRoom chatRoom = findChatRoomOrThrow(chatRoomId);
+        validateChatParticipant(chatRoom, userId);
+
+        boolean isCouple = coupleRepository.existsByChatRoomId(chatRoomId);
+        if (isCouple) {
+            return CoupleStatusResponse.builder()
+                    .hasPendingRequest(false)
+                    .isRequester(false)
+                    .status("CONFIRMED")
+                    .isCouple(true)
+                    .build();
+        }
+
+        var optRequest = coupleRequestRepository
+                .findByChatRoomIdAndStatus(chatRoomId, CoupleRequestStatus.PENDING);
+
+        if (optRequest.isEmpty()) {
+            return CoupleStatusResponse.builder()
+                    .hasPendingRequest(false)
+                    .isRequester(false)
+                    .isCouple(false)
+                    .build();
+        }
+
+        CoupleRequest request = optRequest.get();
+        if (request.isExpired()) {
+            request.expire();
+            return CoupleStatusResponse.builder()
+                    .hasPendingRequest(false)
+                    .isRequester(false)
+                    .status("EXPIRED")
+                    .isCouple(false)
+                    .build();
+        }
+
+        return CoupleStatusResponse.builder()
+                .hasPendingRequest(true)
+                .isRequester(request.getRequester().getId().equals(userId))
+                .status("PENDING")
+                .expiresAt(request.getExpiresAt().format(ISO))
+                .isCouple(false)
+                .requesterNickname(request.getRequester().getNickname())
+                .build();
     }
 
     // ── Private 헬퍼 ──
