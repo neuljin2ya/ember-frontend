@@ -2,6 +2,7 @@ package com.ember.ember.couple.controller;
 
 import com.ember.ember.couple.dto.CoupleAcceptResponse;
 import com.ember.ember.couple.dto.CoupleRequestResponse;
+import com.ember.ember.couple.dto.CoupleStatusResponse;
 import com.ember.ember.couple.service.CoupleService;
 import com.ember.ember.global.response.ApiResponse;
 import com.ember.ember.global.security.CustomUserDetails;
@@ -26,6 +27,19 @@ import org.springframework.web.bind.annotation.*;
 public class CoupleController {
 
     private final CoupleService coupleService;
+
+    /** 커플 요청 상태 조회 */
+    @GetMapping("/api/chat-rooms/{roomId}/couple-status")
+    @Operation(summary = "커플 요청 상태 조회", description = """
+        채팅방의 커플 요청 상태를 조회합니다.
+        폴링으로 사용하여 실시간 커플 요청 감지에 활용합니다.""",
+        security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ApiResponse<CoupleStatusResponse>> getCoupleStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long roomId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                coupleService.getCoupleStatus(userDetails.getUserId(), roomId)));
+    }
 
     /** 7.1 커플 요청 전송 */
     @PostMapping("/api/chat-rooms/{roomId}/couple-request")
