@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api_service.dart';
+import 'diary_screen.dart';
 import 'text_utils.dart';
 
 class TutorialScreen extends StatefulWidget {
@@ -68,7 +69,15 @@ class _TutorialScreenState extends State<TutorialScreen> {
       final ok = await ApiService.completeTutorial();
       if (!mounted) return;
       if (!ok) throw Exception('튜토리얼 완료 저장에 실패했어요.');
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      if (widget.requiredForSignup) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const DiaryScreen(requiredForSignup: true)),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCompleting = false);
