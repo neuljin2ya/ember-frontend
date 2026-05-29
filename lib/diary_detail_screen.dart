@@ -434,17 +434,16 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
-            height: shouldBlur
-                ? 220
-                : MediaQuery.of(context).size.height * 0.48,
-            constraints: shouldBlur
-                ? null
-                : const BoxConstraints(minHeight: 260),
+            constraints: BoxConstraints(
+              minHeight: shouldBlur ? 220 : 260,
+              maxHeight: MediaQuery.of(context).size.height * 0.48,
+            ),
             decoration: BoxDecoration(
               color: shouldBlur
                   ? const Color(0xFFD7D7D7)
@@ -561,24 +560,24 @@ class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
           const SizedBox(height: 20),
 
           // AI 분석 코멘트
-          Expanded(
-            child: Text(
-              _aiComment.isEmpty
-                  ? widget.showDecisionButtons
-                        ? '이 사람과 교환일기를 시작하고 싶다면 아래 버튼을 눌러주세요.'
-                        : ''
-                  : _aiComment,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 12,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w400,
-                height: 2.0,
-              ),
+          Text(
+            _aiComment.isEmpty
+                ? widget.showDecisionButtons
+                      ? '이 사람과 교환일기를 시작하고 싶다면 아래 버튼을 눌러주세요.'
+                      : ''
+                : _aiComment,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 12,
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w400,
+              height: 2.0,
             ),
           ),
+          const SizedBox(height: 20),
         ],
+      ),
       ),
     );
   }
