@@ -69,16 +69,7 @@ class _DiaryAnalysisScreenState extends State<DiaryAnalysisScreen> {
   }
 
   void _goNext() {
-    if (widget.requiredForSignup) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const TutorialScreen(requiredForSignup: true),
-        ),
-      );
-      return;
-    }
-    Navigator.pushReplacementNamed(context, '/home');
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
   }
 
   @override
