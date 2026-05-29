@@ -26,6 +26,7 @@ class _ChatScreenState extends State<ChatScreen> {
   StompUnsubscribe? _wsSub;
   Timer? _couplePollingTimer;
   Map<String, dynamic>? _coupleStatus;
+  bool _coupleStatusInitialized = false;
 
   String _partnerName() {
     return _profileText(_partnerProfile, [
@@ -299,10 +300,15 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final status = await ApiService.getCoupleStatus(widget.roomId);
       if (!mounted) return;
-      final prev = _coupleStatus;
+      final wasCouple = _coupleStatus?['isCouple'] == true;
       setState(() => _coupleStatus = status);
-      // 커플 확정 감지 → 축하 화면
-      if (status['isCouple'] == true && prev?['isCouple'] != true) {
+      // 첫 로드 시 이미 커플이면 축하 화면 안 띄움, 세션 중 전환 시만 표시
+      if (!_coupleStatusInitialized) {
+        _coupleStatusInitialized = true;
+        if (status['isCouple'] == true) _couplePollingTimer?.cancel();
+        return;
+      }
+      if (status['isCouple'] == true && !wasCouple) {
         _couplePollingTimer?.cancel();
         _showCoupleCelebration();
       }

@@ -9,6 +9,7 @@ import lombok.Builder;
 public record NextStepResponse(
         String status,
         int roundNumber,
+        Long chatRoomId,
         String chatRoomUuid,
         String newExpiresAt
 ) {}

@@ -401,6 +401,7 @@ public class ExchangeService {
             return NextStepResponse.builder()
                     .status("CHAT_CREATED")
                     .roundNumber(roundNumber)
+                    .chatRoomId(chatRoom.getId())
                     .chatRoomUuid(chatRoom.getRoomUuid().toString())
                     .build();
         }
