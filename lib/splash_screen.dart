@@ -82,6 +82,16 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
+    if (!_hasCompletedTutorial(profile)) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const TutorialScreen(requiredForSignup: true),
+        ),
+      );
+      return;
+    }
+
     final diaries = await ApiService.getMyDiaries();
     if (!mounted) return;
     if (!_hasAnyDiary(diaries)) {
@@ -89,16 +99,6 @@ class _SplashScreenState extends State<SplashScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => const DiaryScreen(requiredForSignup: true),
-        ),
-      );
-      return;
-    }
-
-    if (!_hasCompletedTutorial(profile)) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const TutorialScreen(requiredForSignup: true),
         ),
       );
       return;
