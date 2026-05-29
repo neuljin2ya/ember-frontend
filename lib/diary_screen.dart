@@ -555,7 +555,9 @@ class _DiaryScreenState extends State<DiaryScreen> with WidgetsBindingObserver {
                                       );
                                       final draftId = _activeDraftId;
                                       if (draftId != null) {
-                                        await ApiService.deleteDraft(draftId);
+                                        try {
+                                          await ApiService.deleteDraft(draftId);
+                                        } catch (_) {}
                                       }
                                       final data = result['data'];
                                       final diaryId = data is Map
