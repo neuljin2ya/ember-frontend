@@ -2,6 +2,26 @@
 
 Ember 사용자 앱 프론트엔드입니다. Flutter로 개발되었고 Android APK 및 iOS 실행을 지원합니다.
 
+## 레포지토리 전체 구조
+
+Ember는 교환일기 기반 소개팅 앱이며, 사용자 앱만이 아니라 백엔드, AI 서버, 관리자 대시보드가 함께 동작하는 구조입니다. 발표 준비나 코드 리뷰를 할 때는 아래 순서로 보면 전체 흐름을 빠르게 잡을 수 있습니다.
+
+| 영역 | 위치 | 역할 | 발표 시 어필 포인트 |
+|---|---|---|---|
+| 사용자 앱 | `lib/`, `android/`, `ios/`, `assets/` | Flutter 기반 모바일 앱. 온보딩, 일기 작성, AI 분석 결과, 매칭, 교환일기, 채팅, 알림, 마이페이지를 담당합니다. | 단순 스와이프형 소개팅이 아니라 일기와 상호작용 이력을 기반으로 관계를 점진적으로 여는 UX입니다. |
+| 관리자 웹 | `Frontend/admin/` | Next.js 14 기반 운영 대시보드. 회원, 신고, 콘텐츠, AI 모니터링, 분석, 시스템 관리 화면을 담당합니다. | 발표 심사에서 "운영 가능성"과 "신뢰 확보 장치"를 보여주는 핵심 화면입니다. |
+| 백엔드 | `Backend/` | Spring Boot 3.x 기반 API 서버. 인증, 회원, 일기, 매칭, 신고, 관리자, AI 연동, MQ/Outbox, 마이그레이션을 담당합니다. | 안전성, 확장성, 장애 격리, 데이터 정합성을 방어하는 근거 코드가 모여 있습니다. |
+| AI 서버 | `ai/` | FastAPI 기반 분석 서버. KcELECTRA, KoSimCSE, 콘텐츠 스캔, 매칭 보조, MQ 소비자를 담당합니다. | "AI를 붙였다"가 아니라 모델 역할과 비동기 파이프라인을 분리했다는 점을 설명할 수 있습니다. |
+| 로컬 명세서 | `docs/` | API, ERD, 기능명세, 발표 대비 HTML 등 로컬 전용 문서입니다. `.gitignore` 대상이므로 협업 레포에는 푸시하지 않습니다. | 심층 질의 시 명세와 코드 위치를 함께 제시하는 근거 창고입니다. |
+
+## 발표 대비 자료
+
+백엔드 팀 발표 지원용 대시보드는 로컬 전용 HTML로 관리합니다.
+
+- 파일: `docs/html/발표_대비_대시보드_백엔드팀_v1.0.html`
+- 성격: 발표 어필 포인트, 경쟁 서비스 벤치마킹, 구현 근거, 100개 예상 공격 질문/방어 답변을 한 화면에 묶은 고밀도 자료
+- 주의: `docs/`는 로컬 전용 폴더이므로 PR에 포함되지 않습니다. 발표 전에는 로컬 파일을 브라우저로 열어 사용합니다.
+
 ## 제출 구성
 
 - Flutter 전체 소스코드
@@ -18,10 +38,10 @@ Ember 사용자 앱 프론트엔드입니다. Flutter로 개발되었고 Android
 
 ## 프로젝트 위치
 
-현재 Flutter 프로젝트 루트는 아래 경로입니다.
+현재 Flutter 프로젝트 루트는 이 레포지토리의 루트입니다.
 
 ```bash
-/Users/neuljin/AndroidStudioProjects/ember
+<프로젝트-루트>
 ```
 
 중요: Android/iOS 빌드는 `Frontend/` 폴더가 아니라 프로젝트 루트에서 실행합니다.
@@ -37,7 +57,7 @@ Ember 사용자 앱 프론트엔드입니다. Flutter로 개발되었고 Android
 의존성 설치:
 
 ```bash
-cd /Users/neuljin/AndroidStudioProjects/ember
+cd <프로젝트-루트>
 flutter pub get
 ```
 
@@ -86,7 +106,7 @@ flutter run -d <device-id>
 릴리즈 APK 빌드:
 
 ```bash
-cd /Users/neuljin/AndroidStudioProjects/ember
+cd <프로젝트-루트>
 flutter clean
 flutter pub get
 flutter build apk --release
@@ -95,19 +115,19 @@ flutter build apk --release
 빌드 성공 시 APK 위치:
 
 ```bash
-/Users/neuljin/AndroidStudioProjects/ember/build/app/outputs/flutter-apk/app-release.apk
+build/app/outputs/flutter-apk/app-release.apk
 ```
 
 Finder에서 APK 폴더 열기:
 
 ```bash
-open /Users/neuljin/AndroidStudioProjects/ember/build/app/outputs/flutter-apk
+open build/app/outputs/flutter-apk
 ```
 
 ## iOS 빌드
 
 ```bash
-cd /Users/neuljin/AndroidStudioProjects/ember
+cd <프로젝트-루트>
 flutter clean
 flutter pub get
 flutter build ios --release
@@ -181,7 +201,7 @@ Android 릴리즈 APK에서 카카오 로그인이 실패하면 보통 key hash 
 릴리즈 APK key hash 확인:
 
 ```bash
-cd /Users/neuljin/AndroidStudioProjects/ember
+cd <프로젝트-루트>
 keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk
 ```
 

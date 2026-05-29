@@ -68,6 +68,9 @@ google-services.json
 # Serena MCP (로컬 프로젝트 메타데이터)
 .serena/
 
+# Superpowers brainstorming companion scratch files
+.superpowers/
+
 # Nginx SSL 인증서
 nginx/certs/
 
