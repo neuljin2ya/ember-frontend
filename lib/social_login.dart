@@ -84,6 +84,16 @@ class _SocialLoginState extends State<SocialLogin> {
       return;
     }
 
+    if (!_hasCompletedTutorial(profile)) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const TutorialScreen(requiredForSignup: true),
+        ),
+      );
+      return;
+    }
+
     final diaries = await ApiService.getMyDiaries();
     if (!mounted) return;
     if (!_hasAnyDiary(diaries)) {
@@ -91,16 +101,6 @@ class _SocialLoginState extends State<SocialLogin> {
         context,
         MaterialPageRoute(
           builder: (_) => const DiaryScreen(requiredForSignup: true),
-        ),
-      );
-      return;
-    }
-
-    if (!_hasCompletedTutorial(profile)) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const TutorialScreen(requiredForSignup: true),
         ),
       );
       return;
