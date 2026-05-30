@@ -16,6 +16,7 @@ public record ExchangeHistoryResponse(
 
     @Schema(description = "교환일기 히스토리 항목")
     public record ExchangeHistoryItem(
+            Long roomId,
             String roomUuid,
             String partnerNickname,
             String status,
@@ -26,6 +27,7 @@ public record ExchangeHistoryResponse(
             var partner = room.getPartner(myUserId);
             String nickname = (partner.getDeletedAt() != null) ? "탈퇴한 사용자" : partner.getNickname();
             return new ExchangeHistoryItem(
+                    room.getId(),
                     room.getRoomUuid().toString(),
                     nickname,
                     room.getStatus().name(),

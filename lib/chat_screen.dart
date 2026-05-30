@@ -171,130 +171,71 @@ class _ChatScreenState extends State<ChatScreen> {
   void _showEndDialog() {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 텍스트
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                '대화를 그만 하시겠습니까?',
-                style: TextStyle(
-                  color: EmberColors.textDark,
-                  fontSize: 16,
-                  fontFamily: 'Pretendard',
-                  height: 1.4,
+        title: Text(
+          '대화를 그만 하시겠습니까?',
+          style: TextStyle(
+            color: EmberColors.textDark,
+            fontSize: 17,
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          '채팅방을 나가면 대화 내용이 사라져요.',
+          style: TextStyle(
+            color: EmberColors.textSecondary,
+            fontSize: 14,
+            fontFamily: 'Pretendard',
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EmberColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                    child: const Text('이어가기', style: TextStyle(color: Colors.white, fontSize: 15, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
+                  ),
                 ),
               ),
-            ),
-            // 버튼
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: EmberColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          '대화 이어가기',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontFamily: 'Pretendard',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          final success = await ApiService.leaveChatRoom(
-                            widget.roomId,
-                          );
-                          if (!context.mounted) return;
-                          if (success) {
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('채팅방을 나갈 수 없어요')),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: EmberColors.buttonSecondary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          '끝내기',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontFamily: 'Pretendard',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // 버튼 Padding 아래에 추가
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(context);
-                      await _reportOrBlockPartner(block: false);
+                      Navigator.pop(ctx);
+                      final success = await ApiService.leaveChatRoom(widget.roomId);
+                      if (!context.mounted) return;
+                      if (success) {
+                        Navigator.pop(context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('채팅방을 나갈 수 없어요')),
+                        );
+                      }
                     },
-                    child: const Text(
-                      '신고하기',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 12,
-                        fontFamily: 'Pretendard',
-                      ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EmberColors.buttonSecondary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
                     ),
+                    child: const Text('나가기', style: TextStyle(color: Colors.white, fontSize: 15, fontFamily: 'Pretendard', fontWeight: FontWeight.w600)),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await _reportOrBlockPartner(block: true);
-                    },
-                    child: const Text(
-                      '차단하기',
-                      style: TextStyle(
-                        color: EmberColors.textTertiary,
-                        fontSize: 12,
-                        fontFamily: 'Pretendard',
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }

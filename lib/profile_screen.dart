@@ -1099,10 +1099,18 @@ class _FaqScreenState extends State<_FaqScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _loadFaq() async {
-    final response = await ApiService.getFaq();
-    final data = response['data'] ?? response;
-    final list = data is List ? data : (data is Map ? (data['faq'] ?? data['faqs'] ?? data['items'] ?? []) : []);
-    return list.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+    try {
+      final response = await ApiService.getFaq();
+      final data = response['data'] ?? response;
+      final rawList = data is List ? data : (data is Map ? (data['faq'] ?? data['faqs'] ?? data['items'] ?? []) : []);
+      final List<Map<String, dynamic>> result = [];
+      for (final item in rawList) {
+        if (item is Map) result.add(Map<String, dynamic>.from(item));
+      }
+      return result;
+    } catch (e) {
+      return [];
+    }
   }
 
   @override
@@ -1185,10 +1193,19 @@ class _ExchangeHistoryScreenState extends State<_ExchangeHistoryScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _loadHistory() async {
-    final response = await ApiService.getExchangeRoomHistory();
-    final data = response['data'] ?? response;
-    final list = data is List ? data : (data is Map ? (data['rooms'] ?? data['exchangeRooms'] ?? data['histories'] ?? data['history'] ?? []) : []);
-    return list.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList();
+    try {
+      final response = await ApiService.getExchangeRoomHistory();
+      final data = response['data'] ?? response;
+      final rawList = data is List ? data : (data is Map ? (data['rooms'] ?? data['exchangeRooms'] ?? data['histories'] ?? data['history'] ?? []) : []);
+      final List<Map<String, dynamic>> result = [];
+      for (final item in rawList) {
+        if (item is Map) result.add(Map<String, dynamic>.from(item));
+      }
+      return result;
+    } catch (e) {
+      print('[ExchangeHistory] ERROR: $e');
+      return [];
+    }
   }
 
   @override
@@ -1226,13 +1243,20 @@ class _ExchangeHistoryScreenState extends State<_ExchangeHistoryScreen> {
             separatorBuilder: (_, __) => Divider(height: 1, color: EmberColors.borderLight),
             itemBuilder: (context, index) {
               final item = items[index];
-              final roomId = item['roomId'] is int ? item['roomId'] as int : int.tryParse(item['roomId']?.toString() ?? '') ?? 0;
+              final roomId = item['roomId'] is int ? item['roomId'] as int : int.tryParse(item['roomId']?.toString() ?? item['roomUuid']?.toString() ?? '') ?? 0;
               final partner = (item['partnerNickname'] ?? item['nickname'] ?? '상대방').toString();
               final status = (item['status'] ?? '').toString();
-              final turnCount = item['turnCount'] ?? item['currentTurn'] ?? 0;
+              final turnCount = item['totalDiaryCount'] ?? item['turnCount'] ?? item['currentTurn'] ?? 0;
+              final completedAt = item['completedAt']?.toString().substring(0, 10) ?? '';
               return ListTile(
                 onTap: () {
-                  if (roomId == 0) return;
+                  // 히스토리에서는 roomId가 없을 수 있음 (UUID만 제공)
+                  if (roomId == 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('상세 조회는 진행 중인 교환일기에서만 가능해요')),
+                    );
+                    return;
+                  }
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1250,7 +1274,7 @@ class _ExchangeHistoryScreenState extends State<_ExchangeHistoryScreen> {
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    '$status · ${turnCount}턴',
+                    '$status · ${turnCount}편${completedAt.isNotEmpty ? ' · $completedAt' : ''}',
                     style: TextStyle(color: EmberColors.textSecondary, fontSize: 13, fontFamily: 'Pretendard'),
                   ),
                 ),

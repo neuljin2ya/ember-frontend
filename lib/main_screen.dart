@@ -578,7 +578,12 @@ class _FriendsBodyState extends State<_FriendsBody> {
     try {
       final data = await ApiService.getExchangeRooms();
       setState(() {
-        _friends = List<Map<String, dynamic>>.from(data['data']?['rooms'] ?? []);
+        final allRooms = List<Map<String, dynamic>>.from(data['data']?['rooms'] ?? []);
+        // 완료/채팅 이동된 방은 소통 탭에서 숨김 (히스토리에서 확인)
+        _friends = allRooms.where((r) {
+          final status = r['status']?.toString().toUpperCase() ?? '';
+          return status == 'ACTIVE';
+        }).toList();
         _friendsMessage = '진행 중인 교환일기가 없어요.';
         _friendsLoadFailed = false;
         _isLoadingFriends = false;
@@ -770,7 +775,6 @@ class _FriendsBodyState extends State<_FriendsBody> {
             preview: msg['lastMessage'] ?? '',
             hasUnread: (msg['unreadCount'] ?? 0) > 0,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(name: msg['partnerNickname'] ?? '', roomId: msg['chatRoomId'] ?? 0))),
-            onLeave: () => _leaveChatRoom(msg),
           );
         },
       ),
