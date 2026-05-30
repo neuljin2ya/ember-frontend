@@ -578,12 +578,7 @@ class _FriendsBodyState extends State<_FriendsBody> {
     try {
       final data = await ApiService.getExchangeRooms();
       setState(() {
-        final allRooms = List<Map<String, dynamic>>.from(data['data']?['rooms'] ?? []);
-        // 완료/채팅 이동된 방은 소통 탭에서 숨김 (히스토리에서 확인)
-        _friends = allRooms.where((r) {
-          final status = r['status']?.toString().toUpperCase() ?? '';
-          return status == 'ACTIVE';
-        }).toList();
+        _friends = List<Map<String, dynamic>>.from(data['data']?['rooms'] ?? []);
         _friendsMessage = '진행 중인 교환일기가 없어요.';
         _friendsLoadFailed = false;
         _isLoadingFriends = false;
@@ -751,6 +746,47 @@ class _FriendsBodyState extends State<_FriendsBody> {
             onExchange: () {
               if (!isMyTurn || roomId == 0) return;
               Navigator.push(context, MaterialPageRoute(builder: (_) => ExchangeDiaryWriteScreen(roomId: roomId, partnerNickname: f['partnerNickname'] ?? ''))).then((_) => _loadExchangeRooms());
+            },
+            onViewReport: () async {
+              if (roomId == 0) return;
+              try {
+                final report = await ApiService.getExchangeRoomReport(roomId);
+                if (!context.mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    title: Text('AI 공통점 리포트', style: EmberTypography.dialogTitle.copyWith(color: EmberColors.primary)),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            (report['aiDescription'] ?? report['summary'] ?? report['description'] ?? '두 사람의 공통점을 분석했어요.').toString(),
+                            style: EmberTypography.bodySmall.copyWith(height: 1.6),
+                          ),
+                          if (report['commonKeywords'] is List && (report['commonKeywords'] as List).isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            Text('공통 키워드', style: EmberTypography.titleSmall),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6, runSpacing: 6,
+                              children: (report['commonKeywords'] as List).map((k) => EmberKeywordChip(label: k.toString())).toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: Text('닫기', style: TextStyle(color: EmberColors.primary))),
+                    ],
+                  ),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('리포트를 불러올 수 없어요: $e')));
+              }
             },
           );
         },

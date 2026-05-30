@@ -250,6 +250,7 @@ class EmberFriendCard extends StatelessWidget {
   final String? status;
   final VoidCallback onTap;
   final VoidCallback onExchange;
+  final VoidCallback? onViewReport;
 
   const EmberFriendCard({
     super.key,
@@ -260,16 +261,17 @@ class EmberFriendCard extends StatelessWidget {
     this.status,
     required this.onTap,
     required this.onExchange,
+    this.onViewReport,
   });
 
-  bool get _isWritable {
+  bool get _isCompleted {
     final s = status?.toUpperCase() ?? '';
-    return s != 'COMPLETED' && s != 'CHAT_CONNECTED' && s != 'ENDED' && s != 'ARCHIVED';
+    return s == 'COMPLETED' || s == 'CHAT_CONNECTED' || s == 'ENDED' || s == 'ARCHIVED';
   }
 
   String get _actionLabel {
     final s = status?.toUpperCase() ?? '';
-    if (s == 'COMPLETED' || s == 'CHAT_CONNECTED') return '완료됨';
+    if (s == 'COMPLETED' || s == 'CHAT_CONNECTED') return '리포트 보기';
     if (s == 'ENDED' || s == 'ARCHIVED') return '종료됨';
     return isMyTurn ? '일기 쓰기' : '상대 차례';
   }
@@ -335,8 +337,8 @@ class EmberFriendCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   _ActionChip(
                     label: _actionLabel,
-                    isActive: isMyTurn && _isWritable,
-                    onTap: isMyTurn && _isWritable ? onExchange : null,
+                    isActive: _isCompleted || isMyTurn,
+                    onTap: _isCompleted ? onViewReport : (isMyTurn ? onExchange : null),
                   ),
                 ],
               ),
