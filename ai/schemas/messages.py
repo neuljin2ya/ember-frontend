@@ -73,7 +73,7 @@ class AnalysisTag(BaseModel):
 
 class AnalysisResult(BaseModel):
   """KcELECTRA 추론 결과 6종 (diary.analyze.v1 전용)"""
-  summary: str = Field(..., max_length=50, description="본문 요약 50자 이내")
+  summary: str = Field(..., max_length=80, description="본문 요약 80자 이내")
   category: Literal["DAILY", "TRAVEL", "FOOD", "RELATIONSHIP", "WORK"]
   tags: list[AnalysisTag]
 

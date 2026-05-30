@@ -2,7 +2,7 @@
 Gemini API 기반 일기 주제 요약 서비스
 
 입력: 일기 원문 (str)
-출력: 50자 이내 한국어 주제 요약 (str)
+출력: 80자 이내 한국어 주제 요약 (str)
 
 사용 모델: gemini-2.5-flash (유료 티어, Cloud Console 키)
 Fallback: API 실패 시 기존 규칙 기반 요약(앞부분 자르기)으로 대체
@@ -25,10 +25,10 @@ GEMINI_URL = (
     f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 )
 
-SUMMARY_PROMPT = """아래 일기의 핵심 내용을 한국어 한 문장(30~50자)으로 요약하세요.
+SUMMARY_PROMPT = """아래 일기의 핵심 내용을 한국어 한 문장(40~80자)으로 요약하세요.
 
 규칙:
-1. 반드시 30자 이상 50자 이하의 완전한 문장으로 작성
+1. 반드시 40자 이상 80자 이하의 완전한 문장으로 작성
 2. 구체적인 행동과 감정을 모두 포함할 것
 3. "~한 하루", "~에 대한 일기" 같은 막연한 표현 절대 금지
 4. 따옴표나 부가 설명 없이 요약문만 출력
@@ -48,7 +48,7 @@ SUMMARY_PROMPT = """아래 일기의 핵심 내용을 한국어 한 문장(30~50
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?。])\s+")
 
 
-def _fallback_summary(content: str, max_chars: int = 50) -> str:
+def _fallback_summary(content: str, max_chars: int = 80) -> str:
     """Gemini API 실패 시 기존 방식 — 본문 앞부분 1~2문장 50자 이내 추출."""
     trimmed = content.strip()
     if not trimmed:
@@ -74,7 +74,7 @@ def _fallback_summary(content: str, max_chars: int = 50) -> str:
 
 # ── Gemini API 호출 ──────────────────────────────────────────────────────────
 
-async def generate_summary(content: str, max_chars: int = 50) -> str:
+async def generate_summary(content: str, max_chars: int = 80) -> str:
     """
     Gemini API로 일기 주제 요약 생성.
 
