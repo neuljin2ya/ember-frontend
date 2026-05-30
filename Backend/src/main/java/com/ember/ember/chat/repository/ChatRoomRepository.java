@@ -20,10 +20,10 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     /** 교환방 ID로 조회 */
     Optional<ChatRoom> findByExchangeRoomId(Long exchangeRoomId);
 
-    /** 참여 중인 채팅방 목록 (종료 제외, userA/userB JOIN FETCH로 N+1 방지) */
+    /** 참여 중인 채팅방 목록 (나간 방/종료 제외, userA/userB JOIN FETCH로 N+1 방지) */
     @Query("SELECT cr FROM ChatRoom cr JOIN FETCH cr.userA JOIN FETCH cr.userB " +
            "WHERE (cr.userA.id = :userId OR cr.userB.id = :userId) " +
-           "AND cr.status NOT IN ('TERMINATED') ORDER BY cr.modifiedAt DESC")
+           "AND cr.status NOT IN ('TERMINATED', 'CHAT_LEFT') ORDER BY cr.modifiedAt DESC")
     List<ChatRoom> findByParticipant(@Param("userId") Long userId);
 
     /** 히스토리 조회 (종료된 채팅방, 커서 기반 페이징) */
