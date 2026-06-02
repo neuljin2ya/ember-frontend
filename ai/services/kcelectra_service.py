@@ -28,6 +28,30 @@ from services.gemini_summary_service import generate_summary
 
 logger = logging.getLogger(__name__)
 
+# ── 감정 태그 추출 정책 상수 ──────────────────────────────────────────────────
+# 임계값: 이 값 이상의 감정만 후보로 채택
+EMOTION_THRESHOLD = 0.7
+
+# 분량별 감정 태그 상한
+# (이상 글자수, 최대 개수) 쌍을 큰 순서로 평가
+# 예: 1000자 일기 → 7개, 700자 일기 → 6개, 500자 → 5개, 300자 → 4개, 그 이하 → 3개
+EMOTION_LIMITS = [
+    (900, 7),
+    (700, 6),
+    (500, 5),
+    (300, 4),
+    (0, 3),  # 기본값 (그 외 모든 짧은 일기)
+]
+
+
+def _get_emotion_limit(content_length: int) -> int:
+    """일기 분량에 따라 감정 태그 최대 개수를 반환."""
+    for threshold, limit in EMOTION_LIMITS:
+        if content_length >= threshold:
+            return limit
+    return 3  # 안전 기본값
+
+
 # ── 삼진 태그 → 레이블 매핑 ──────────────────────────────────────────────────
 
 LIFESTYLE_LABELS = {
@@ -80,6 +104,12 @@ async def analyze_diary(content: str) -> AnalysisResult:
       - 입력: content (str)
       - 출력: AnalysisResult(summary, category, tags)
       - 에러: ValueError (길이 부족)
+
+    감정 태그 추출 정책:
+      1) EMOTION_THRESHOLD(0.7) 이상의 감정만 후보로 채택
+      2) score 내림차순 정렬
+      3) 일기 분량별 상한(EMOTION_LIMITS)까지만 출력
+      4) 후보가 상한보다 적으면 후보 전부 출력 (패딩 없음)
     """
     # 1. 길이 검증
     if len(content) < MIN_CONTENT_LENGTH:
@@ -100,14 +130,29 @@ async def analyze_diary(content: str) -> AnalysisResult:
             encoding['input_ids'], encoding['attention_mask']
         )
 
-    # 3. 감정 태그 (이진, threshold=0.5)
+    # 3. 감정 태그 (이진, 임계값 + 분량별 상한 적용)
     e_probs = torch.sigmoid(e_logits).cpu().numpy()[0]
     tags: list[AnalysisTag] = []
 
+    # 3-1. 임계값 통과한 감정 후보 수집
+    emotion_candidates: list[AnalysisTag] = []
     for i, tag_name in enumerate(EMOTION_TAGS):
         score = float(e_probs[i])
-        if score > 0.5:
-            tags.append(AnalysisTag(type="EMOTION", label=tag_name, score=round(score, 4)))
+        if score >= EMOTION_THRESHOLD:
+            emotion_candidates.append(
+                AnalysisTag(type="EMOTION", label=tag_name, score=round(score, 4))
+            )
+
+    # 3-2. 점수 내림차순 정렬 후 분량별 상한까지만 채택
+    emotion_candidates.sort(key=lambda t: t.score, reverse=True)
+    emotion_limit = _get_emotion_limit(len(content))
+    tags.extend(emotion_candidates[:emotion_limit])
+
+    logger.debug(
+        "감정 태그 추출: 후보 %d개 → 채택 %d개 (분량 %d자, 상한 %d)",
+        len(emotion_candidates), min(len(emotion_candidates), emotion_limit),
+        len(content), emotion_limit,
+    )
 
     # 4. 생활성향 (삼진 → 레이블 변환)
     l_probs = torch.softmax(l_logits, dim=-1).cpu().numpy()[0]
@@ -127,7 +172,7 @@ async def analyze_diary(content: str) -> AnalysisResult:
         confidence = float(r_probs[i][pred_class])
         tags.append(AnalysisTag(type="RELATIONSHIP_STYLE", label=label, score=round(confidence, 4)))
 
-    # 6. 톤 태그 (이진, threshold=0.5)
+    # 6. 톤 태그 (이진, threshold=0.5 — 기존 유지)
     t_probs = torch.sigmoid(t_logits).cpu().numpy()[0]
     for i, tag_name in enumerate(TONE_TAGS):
         score = float(t_probs[i])
