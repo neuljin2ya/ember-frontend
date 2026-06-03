@@ -130,33 +130,33 @@ class _ChatScreenState extends State<ChatScreen> {
     return _myUserId != null && senderId == _myUserId;
   }
 
-  void _sendMessage() {
+  void _sendMessage() async {
     if (_controller.text.trim().isEmpty) return;
     final text = _controller.text.trim();
     _controller.clear();
 
-    // WebSocket으로 전송 (서버가 브로드캐스트하면 구독에서 수신)
-    final ws = WebSocketService.instance;
-    if (ws.isConnected) {
-      ws.send(widget.roomId, text);
-    } else {
-      // WebSocket 미연결 시 REST fallback
-      ApiService.sendChatMessage(widget.roomId, text).catchError((e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('메시지 전송 실패: $e')));
-        }
-      });
-    }
-
     // 낙관적 UI 업데이트
-    setState(() {
-      _messages.add({
-        'content': text,
-        'senderId': _myUserId,
-        'createdAt': DateTime.now().toIso8601String(),
-      });
-    });
+    final tempMsg = {
+      'content': text,
+      'senderId': _myUserId,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+    setState(() => _messages.add(tempMsg));
+
+    // REST API로 전송 (금칙어 에러 처리)
+    final result = await ApiService.sendChatMessage(widget.roomId, text);
+    final code = result['code']?.toString() ?? '';
+    if (code != '200' && code != '201') {
+      if (!mounted) return;
+      setState(() => _messages.remove(tempMsg));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('욕설이나 부적절한 표현은 사용할 수 없어요.'),
+          backgroundColor: Color(0xFFE53935),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
 
     Future.delayed(const Duration(milliseconds: 100), () {
       if (!mounted || !_scrollController.hasClients) return;
@@ -488,22 +488,6 @@ class _ChatScreenState extends State<ChatScreen> {
       });
     });
 
-    // 금칙어 등 에러 전용 구독
-    if (_myUserId != null) {
-      ws.subscribeErrors(widget.roomId, _myUserId!, (error) {
-        if (!mounted) return;
-        setState(() {
-          if (_messages.isNotEmpty) _messages.removeLast();
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('욕설이나 부적절한 표현은 사용할 수 없어요.'),
-            backgroundColor: Color(0xFFE53935),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      });
-    }
     ws.sendRead(widget.roomId);
   }
 
