@@ -61,6 +61,20 @@ class WebSocketService {
     );
   }
 
+  StompUnsubscribe? subscribeErrors(
+    int roomId,
+    int userId,
+    void Function(Map<String, dynamic>) onError,
+  ) {
+    if (_client == null || !_isConnected) return null;
+    return _client!.subscribe(
+      destination: '/topic/chat/$roomId/errors/$userId',
+      callback: (frame) {
+        if (frame.body != null) onError(jsonDecode(frame.body!));
+      },
+    );
+  }
+
   void sendRead(int roomId) {
     if (_client == null || !_isConnected) return;
     _client!.send(destination: '/app/chat/$roomId/read', body: '');

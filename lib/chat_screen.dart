@@ -457,38 +457,26 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMe();
+    _initChat();
     _loadPartnerProfile();
     _loadMessages();
-    _connectWebSocket();
     _checkCoupleStatus();
     _couplePollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkCoupleStatus());
+  }
+
+  Future<void> _initChat() async {
+    await _loadMe();
+    await _connectWebSocket();
   }
 
   Future<void> _connectWebSocket() async {
     final ws = WebSocketService.instance;
     await ws.connect();
     _wsSub = ws.subscribe(widget.roomId, (msg) {
-      if (!mounted) return;
-
-      // 서버에서 보낸 에러 메시지 (금칙어 등)
-      if (msg['type'] == 'ERROR') {
-        final targetId = msg['targetUserId'];
-        if (targetId == _myUserId) {
-          // 낙관적 UI로 추가한 마지막 메시지 롤백
-          setState(() {
-            if (_messages.isNotEmpty) _messages.removeLast();
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg['message'] ?? '메시지를 보낼 수 없어요.')),
-          );
-        }
-        return;
-      }
-
       // 자기가 보낸 메시지는 낙관적 UI로 이미 추가했으므로 스킵
       final senderId = msg['senderId'];
       if (senderId == _myUserId) return;
+      if (!mounted) return;
       setState(() => _messages.add(msg));
       Future.delayed(const Duration(milliseconds: 100), () {
         if (!mounted || !_scrollController.hasClients) return;
@@ -499,6 +487,23 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       });
     });
+
+    // 금칙어 등 에러 전용 구독
+    if (_myUserId != null) {
+      ws.subscribeErrors(widget.roomId, _myUserId!, (error) {
+        if (!mounted) return;
+        setState(() {
+          if (_messages.isNotEmpty) _messages.removeLast();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('욕설이나 부적절한 표현은 사용할 수 없어요.'),
+            backgroundColor: Color(0xFFE53935),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+    }
     ws.sendRead(widget.roomId);
   }
 

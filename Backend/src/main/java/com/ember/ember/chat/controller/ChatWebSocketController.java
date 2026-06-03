@@ -38,12 +38,11 @@ public class ChatWebSocketController {
             ChatMessageResponse response = chatService.sendMessage(userId, roomId, request);
             messagingTemplate.convertAndSend("/topic/chat/" + roomId, response);
         } catch (BusinessException e) {
-            // 금칙어 등 비즈니스 에러 → 발신자에게만 에러 메시지 전송
-            messagingTemplate.convertAndSend("/topic/chat/" + roomId,
+            // 금칙어 등 비즈니스 에러 → 발신자 전용 토픽으로 에러 전송
+            messagingTemplate.convertAndSend("/topic/chat/" + roomId + "/errors/" + userId,
                     Map.of("type", "ERROR",
                            "code", e.getErrorCode().getCode(),
-                           "message", e.getMessage(),
-                           "targetUserId", userId));
+                           "message", e.getMessage()));
             log.info("[ChatWS] 메시지 차단 — roomId={}, userId={}, code={}", roomId, userId, e.getErrorCode().getCode());
         }
     }
